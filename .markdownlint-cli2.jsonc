@@ -6,6 +6,7 @@
     "**/node_modules/**",
     "**/dist/**",
     "**/out/**",
+    "src-tauri/target/**",
     ".vscode-test/**",
     // Claude Code が持ち込む配布物（skill / plugin）は対象外
     ".claude/skills/**",

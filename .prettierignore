@@ -1,0 +1,7 @@
+# Markdown は markdownlint で検査する（日本語の表を崩さないため、Prettier では整形しない）
+*.md
+dist/
+node_modules/
+package-lock.json
+src-tauri/target/
+src-tauri/gen/

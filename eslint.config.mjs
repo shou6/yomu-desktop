@@ -1,21 +1,35 @@
+import { defineConfig } from 'eslint/config';
+import globals from 'globals';
 import typescriptEslint from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-config-prettier';
 
-export default [
+export default defineConfig(
   {
-    files: ['**/*.ts'],
+    ignores: ['dist/**', 'src-tauri/target/**', 'src-tauri/gen/**'],
   },
+  typescriptEslint.configs.recommended,
   {
-    plugins: {
-      '@typescript-eslint': typescriptEslint.plugin,
-    },
-
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
-      parser: typescriptEslint.parser,
       ecmaVersion: 2022,
       sourceType: 'module',
+      globals: globals.browser,
     },
-
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs', '*.{js,mjs,ts}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/naming-convention': [
         'warn',
@@ -24,6 +38,7 @@ export default [
           format: ['camelCase', 'PascalCase'],
         },
       ],
+      '@typescript-eslint/no-explicit-any': 'error',
 
       curly: 'warn',
       eqeqeq: 'warn',
@@ -31,5 +46,5 @@ export default [
     },
   },
   // フォーマットは Prettier に任せ、衝突する ESLint ルールを無効化する（末尾に置く）
-  prettier,
-];
+  prettier
+);
