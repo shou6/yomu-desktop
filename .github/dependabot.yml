@@ -1,0 +1,55 @@
+# 依存と GitHub Actions の新版を、月に 1 回まとめて確認する。
+# 通知を減らすため、エコシステムごとに 1 つの PR へまとめ、メジャー更新だけを別の PR に分ける。
+# コミットメッセージはコミット規約（chore(deps): ...）に合わせる。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      npm:
+        update-types: [minor, patch]
+      npm-major:
+        update-types: [major]
+    ignore:
+      # 11.17.0 より新しい版では状態遷移図の矢印が読みにくくなったため固定している（要件定義 5.10 節）
+      - dependency-name: mermaid
+      # Node のメジャーは CI に合わせて手で上げる
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # typescript-eslint が対応する範囲を超えると npm ci が失敗する。
+      # typescript-eslint の peerDependencies が新しいメジャーを含んでから手で上げる
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      cargo:
+        update-types: [minor, patch]
+      cargo-major:
+        update-types: [major]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      github-actions:
+        patterns: ['*']
+    commit-message:
+      prefix: chore
+      include: scope
