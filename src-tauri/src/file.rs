@@ -1,3 +1,76 @@
+use crate::error::{AppError, ErrorKind};
+use serde::Serialize;
+use std::fs;
+use std::io::ErrorKind as IoErrorKind;
+use std::path::Path;
+
+/// 開ける Markdown の上限（10 MiB）
+pub const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
+
+const MARKDOWN_EXTENSIONS: [&str; 2] = ["md", "markdown"];
+const UTF8_BOM: char = '\u{feff}';
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarkdownFile {
+    pub path: String,
+    pub content: String,
+    /// 文書のフォルダ。相対パスの画像やリンクの基準にする
+    pub base_dir: String,
+}
+
+/// Markdown を読む。拡張子、存在、サイズ、UTF-8 の順に検査し、BOM を取り除く
+pub fn read_markdown(path: &str) -> Result<MarkdownFile, AppError> {
+    let error = |kind| AppError::new(kind, path);
+    let file_path = Path::new(path);
+
+    let is_markdown = file_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| {
+            MARKDOWN_EXTENSIONS
+                .iter()
+                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+        });
+    if !is_markdown {
+        return Err(error(ErrorKind::UnsupportedType));
+    }
+
+    let metadata = fs::metadata(file_path).map_err(|e| error(io_kind(&e)))?;
+    if !metadata.is_file() {
+        return Err(error(ErrorKind::NotFound));
+    }
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(error(ErrorKind::TooLarge));
+    }
+
+    let bytes = fs::read(file_path).map_err(|e| error(io_kind(&e)))?;
+    let content = String::from_utf8(bytes).map_err(|_| error(ErrorKind::NotUtf8))?;
+    let content = if content.starts_with(UTF8_BOM) {
+        content[UTF8_BOM.len_utf8()..].to_owned()
+    } else {
+        content
+    };
+
+    let base_dir = file_path
+        .parent()
+        .map(|dir| dir.to_string_lossy().into_owned())
+        .unwrap_or_default();
+
+    Ok(MarkdownFile {
+        path: path.to_owned(),
+        content,
+        base_dir,
+    })
+}
+
+fn io_kind(error: &std::io::Error) -> ErrorKind {
+    match error.kind() {
+        IoErrorKind::NotFound => ErrorKind::NotFound,
+        _ => ErrorKind::Io,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

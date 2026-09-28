@@ -1,3 +1,34 @@
+use serde::Serialize;
+
+/// フロントへ返すエラーの種類。文はフロントで種類から翻訳する
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ErrorKind {
+    UnsupportedType,
+    NotFound,
+    TooLarge,
+    NotUtf8,
+    Io,
+    #[allow(dead_code)] // エディタで開く（F-12）で使う
+    EditorFailed,
+}
+
+/// コマンドのエラー。`{ kind, path }` の形でフロントに届く
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AppError {
+    pub kind: ErrorKind,
+    pub path: String,
+}
+
+impl AppError {
+    pub fn new(kind: ErrorKind, path: impl Into<String>) -> Self {
+        Self {
+            kind,
+            path: path.into(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
