@@ -1,4 +1,4 @@
-import { t } from './l10n/t';
+import { t } from '../l10n/t';
 
 function App() {
   return (
