@@ -1,3 +1,10 @@
 {
-  "Drop a Markdown file here": "Markdown ファイルをここにドロップ"
+  "Drop a Markdown file here": "Markdown ファイルをここにドロップ",
+  "Drop to open": "ドロップして開く",
+  "Only .md and .markdown files can be opened: {0}": ".md と .markdown のファイルだけを開けます：{0}",
+  "File not found: {0}": "ファイルが見つかりません：{0}",
+  "File is larger than 10 MiB: {0}": "10 MiB を超えるファイルは開けません：{0}",
+  "File is not UTF-8 text: {0}": "UTF-8 のテキストとして読めません：{0}",
+  "Could not start the editor: {0}": "エディタを起動できません：{0}",
+  "Could not read the file: {0}": "ファイルを読めません：{0}"
 }
