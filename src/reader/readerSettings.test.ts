@@ -1,11 +1,13 @@
 import * as assert from 'node:assert';
 import { describe, it } from 'vitest';
-import { DEFAULT_SETTINGS, cssVariables, normalizeSettings } from './readerSettings';
+import { DEFAULT_SETTINGS, cssVariables, normalizeSettings, resolveTheme } from './readerSettings';
 
 describe('normalizeSettings', () => {
   it('何も無ければ既定値', () => {
     assert.deepStrictEqual(normalizeSettings({}), DEFAULT_SETTINGS);
-    assert.strictEqual(DEFAULT_SETTINGS.theme, 'paper');
+    assert.strictEqual(DEFAULT_SETTINGS.theme, 'auto');
+    assert.strictEqual(DEFAULT_SETTINGS.editorCommand, '');
+    assert.strictEqual(DEFAULT_SETTINGS.language, 'auto');
     assert.strictEqual(DEFAULT_SETTINGS.maxWidth, 820);
     assert.strictEqual(DEFAULT_SETTINGS.align, 'center');
     assert.strictEqual(DEFAULT_SETTINGS.padding, 32);
@@ -30,6 +32,8 @@ describe('normalizeSettings', () => {
       focusMode: true,
       foldLines: 30,
       frontMatter: 'hidden',
+      editorCommand: 'code -g {file}:{line}',
+      language: 'ja',
     });
     assert.deepStrictEqual(settings, {
       theme: 'dark',
@@ -44,7 +48,15 @@ describe('normalizeSettings', () => {
       focusMode: true,
       foldLines: 30,
       frontMatter: 'hidden',
+      editorCommand: 'code -g {file}:{line}',
+      language: 'ja',
     });
+  });
+
+  it('テーマは auto と 10 のテーマ。VS Code の変数に頼る vscode テーマは無い', () => {
+    assert.strictEqual(normalizeSettings({ theme: 'auto' }).theme, 'auto');
+    assert.strictEqual(normalizeSettings({ theme: 'paper' }).theme, 'paper');
+    assert.strictEqual(normalizeSettings({ theme: 'vscode' }).theme, 'auto');
   });
 
   it('追加のテーマ（Solarized、GitHub、Nord、Catppuccin）も受け付ける', () => {
@@ -67,9 +79,11 @@ describe('normalizeSettings', () => {
   });
 
   it('列挙に無い値は既定値に戻す', () => {
-    assert.strictEqual(normalizeSettings({ theme: 'neon' }).theme, 'paper');
+    assert.strictEqual(normalizeSettings({ theme: 'neon' }).theme, 'auto');
     assert.strictEqual(normalizeSettings({ align: 'middle' }).align, 'center');
-    assert.strictEqual(normalizeSettings({ theme: 1 }).theme, 'paper');
+    assert.strictEqual(normalizeSettings({ theme: 1 }).theme, 'auto');
+    assert.strictEqual(normalizeSettings({ language: 'fr' }).language, 'auto');
+    assert.strictEqual(normalizeSettings({ language: 'en' }).language, 'en');
   });
 
   it('範囲外の数値は既定値に戻す。maxWidth の 0 は「制限なし」として通す', () => {
@@ -120,6 +134,26 @@ describe('normalizeSettings', () => {
     assert.strictEqual(normalizeSettings({ customCss: '  /a/b.css ' }).customCss, '/a/b.css');
     assert.strictEqual(normalizeSettings({ customCss: 3 }).customCss, '');
   });
+
+  it('エディタのコマンドは前後の空白を落とし、文字列でなければ空（OS の標準のエディタ）', () => {
+    assert.strictEqual(
+      normalizeSettings({ editorCommand: '  code -g "{file}":{line} ' }).editorCommand,
+      'code -g "{file}":{line}'
+    );
+    assert.strictEqual(normalizeSettings({ editorCommand: ['code'] }).editorCommand, '');
+  });
+});
+
+describe('resolveTheme', () => {
+  it('auto は OS がダークなら dark、ライトなら paper', () => {
+    assert.strictEqual(resolveTheme('auto', true), 'dark');
+    assert.strictEqual(resolveTheme('auto', false), 'paper');
+  });
+
+  it('auto 以外は OS の明暗に関わらずそのまま', () => {
+    assert.strictEqual(resolveTheme('sepia', true), 'sepia');
+    assert.strictEqual(resolveTheme('nord', false), 'nord');
+  });
 });
 
 describe('cssVariables', () => {
@@ -141,6 +175,7 @@ describe('cssVariables', () => {
       code
     );
     assert.ok(code.trim().endsWith('monospace'), code);
+    assert.ok(!code.includes('--vscode-'), code);
     assert.strictEqual(vars['--yomu-font-size'], '16px');
     assert.strictEqual(vars['--yomu-line-height'], '1.8');
   });

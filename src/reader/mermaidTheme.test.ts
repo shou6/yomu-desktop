@@ -4,28 +4,18 @@ import { mermaidConfig, mermaidTheme } from './mermaidTheme';
 
 describe('mermaidTheme', () => {
   it('Yomu のテーマごとに mermaid のテーマを選ぶ', () => {
-    assert.strictEqual(mermaidTheme('paper', false), 'default');
-    assert.strictEqual(mermaidTheme('sepia', false), 'neutral');
-    assert.strictEqual(mermaidTheme('dark', false), 'dark');
+    assert.strictEqual(mermaidTheme('paper'), 'default');
+    assert.strictEqual(mermaidTheme('sepia'), 'neutral');
+    assert.strictEqual(mermaidTheme('dark'), 'dark');
   });
 
   it('追加のテーマは、ダーク系なら dark、ライト系なら default', () => {
     for (const theme of ['solarized-dark', 'github-dark', 'nord', 'catppuccin-mocha'] as const) {
-      assert.strictEqual(mermaidTheme(theme, false), 'dark', theme);
+      assert.strictEqual(mermaidTheme(theme), 'dark', theme);
     }
     for (const theme of ['solarized-light', 'github-light', 'catppuccin-latte'] as const) {
-      assert.strictEqual(mermaidTheme(theme, true), 'default', theme);
+      assert.strictEqual(mermaidTheme(theme), 'default', theme);
     }
-  });
-
-  it('vscode テーマは、カラーテーマの明暗に従う', () => {
-    assert.strictEqual(mermaidTheme('vscode', false), 'default');
-    assert.strictEqual(mermaidTheme('vscode', true), 'dark');
-  });
-
-  it('paper と sepia と dark は、カラーテーマの明暗に関わらない', () => {
-    assert.strictEqual(mermaidTheme('paper', true), 'default');
-    assert.strictEqual(mermaidTheme('dark', false), 'dark');
   });
 });
 

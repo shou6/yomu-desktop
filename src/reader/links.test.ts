@@ -29,17 +29,31 @@ describe('classifyLink', () => {
     });
   });
 
-  it('相対パスはパスとフラグメントに分け、パスはデコードする', () => {
+  it('相対パスの .md と .markdown は文書。パスとフラグメントに分け、パスはデコードする', () => {
     assert.deepStrictEqual(classifyLink('./other.md'), {
-      kind: 'relative',
+      kind: 'document',
       path: './other.md',
       fragment: undefined,
     });
     assert.deepStrictEqual(classifyLink('../docs/%E8%A8%AD%E8%A8%88.md#%E6%A6%82%E8%A6%81'), {
-      kind: 'relative',
+      kind: 'document',
       path: '../docs/設計.md',
       fragment: '概要',
     });
+    assert.deepStrictEqual(classifyLink('notes.MARKDOWN'), {
+      kind: 'document',
+      path: 'notes.MARKDOWN',
+      fragment: undefined,
+    });
+  });
+
+  it('相対パスのそれ以外のファイルは、OS の既定のアプリで開くファイル。フラグメントは落とす', () => {
+    assert.deepStrictEqual(classifyLink('./spec.pdf'), { kind: 'file', path: './spec.pdf' });
+    assert.deepStrictEqual(classifyLink('../%E5%9B%B3/a.png#x'), {
+      kind: 'file',
+      path: '../図/a.png',
+    });
+    assert.deepStrictEqual(classifyLink('images/'), { kind: 'file', path: 'images/' });
   });
 
   it('それ以外のスキーム（javascript:、file:、vscode: など）は無視する', () => {
