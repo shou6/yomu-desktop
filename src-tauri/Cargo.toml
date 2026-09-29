@@ -1,6 +1,6 @@
 [package]
 name = "yomu-desktop"
-version = "0.0.1"
+version = "1.0.0"
 description = "A Markdown reader with Japanese typography"
 authors = ["shou6"]
 license = "MIT"
