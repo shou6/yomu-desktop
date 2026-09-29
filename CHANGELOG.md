@@ -1,7 +1,21 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This file lists the notable changes to Yomu.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+It follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+The first release of the desktop version of [Yomu](https://github.com/shou6/yomu), based on the extension v0.3.1.
+
+### Added
+
+- Open Markdown files by double-click (file association for `.md` and `.markdown`), drag and drop, or the file dialog. A second launch opens the file in the running window.
+- Rendering and typesetting from Yomu: CommonMark and GFM, footnotes, KaTeX math, Mermaid diagrams, syntax highlighting, YAML front matter, and bundled Japanese fonts.
+- Themes: `auto` (follows the OS light or dark mode), `paper`, `sepia`, `dark`, Solarized, GitHub, Nord and Catppuccin.
+- Settings dialog for theme, layout, fonts, code folding, editor command, language and custom CSS.
+- Outline and reading history in a side panel, reading progress in the toolbar, and resuming from where you stopped.
+- Links between documents with back and forward, live update on save, and opening the file in your editor at the line you are reading.
+- Find in page, focus mode, zoom for images and diagrams, folding for long code, print and PDF, and custom CSS.
+- English and Japanese interface.
+- Installers for Windows (NSIS), macOS (universal) and Linux (AppImage and deb).
