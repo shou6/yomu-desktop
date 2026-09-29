@@ -1,7 +1,34 @@
+//! リンクの先を OS の既定のアプリやブラウザで開く（F-10）。
+//! 文書のリンクから任意のプログラムを起動されないよう、実行できる種類のファイルは開かない。
+
+use std::path::Path;
+
+/// 開くと実行されるファイルの拡張子
+const BLOCKED_EXTENSIONS: [&str; 24] = [
+    "exe", "bat", "cmd", "com", "msi", "msp", "ps1", "psm1", "vbs", "vbe", "js", "jse", "wsf",
+    "wsh", "jar", "sh", "lnk", "scr", "pif", "cpl", "app", "hta", "reg", "url",
+];
+
+pub fn is_safe_to_open(path: &Path) -> bool {
+    !path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| {
+            BLOCKED_EXTENSIONS
+                .iter()
+                .any(|blocked| ext.eq_ignore_ascii_case(blocked))
+        })
+}
+
+/// ブラウザやメーラーで開いてよい URL
+pub fn is_openable_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.starts_with("https://") || lower.starts_with("http://") || lower.starts_with("mailto:")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
 
     #[test]
     fn documents_and_images_can_be_opened() {
