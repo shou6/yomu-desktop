@@ -9,8 +9,11 @@ pub enum ErrorKind {
     TooLarge,
     NotUtf8,
     Io,
-    #[allow(dead_code)] // エディタで開く（F-12）で使う
     EditorFailed,
+    /// リンクの先が実行できる種類のファイルなので開かない
+    Blocked,
+    /// OS の既定のアプリで開けなかった
+    OpenFailed,
 }
 
 /// コマンドのエラー。`{ kind, path }` の形でフロントに届く
@@ -52,6 +55,8 @@ mod tests {
             ErrorKind::NotUtf8,
             ErrorKind::Io,
             ErrorKind::EditorFailed,
+            ErrorKind::Blocked,
+            ErrorKind::OpenFailed,
         ]
         .into_iter()
         .map(|kind| {
@@ -70,7 +75,9 @@ mod tests {
                 "too_large",
                 "not_utf8",
                 "io",
-                "editor_failed"
+                "editor_failed",
+                "blocked",
+                "open_failed"
             ]
         );
     }

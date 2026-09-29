@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-store"
+description = "Enables the save_store command without any pre-configured scope."
+commands.allow = ["save_store"]
+
+[[permission]]
+identifier = "deny-save-store"
+description = "Denies the save_store command without any pre-configured scope."
+commands.deny = ["save_store"]

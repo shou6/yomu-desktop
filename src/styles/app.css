@@ -1,9 +1,17 @@
-/* 画面の枠。本文の組版は reader.css、色はテーマ（themes/*.css）の変数を使う */
+/*
+ * 画面の枠。本文の組版は reader.css、色はテーマ（themes/*.css）の変数を使う。
+ * ツールバー、サイドパネル、ダイアログの色も本文のテーマに合わせる（要件定義 3.1 節）
+ */
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+body {
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ダーク系のテーマでは、スクロールバーなどのブラウザの部品も暗くする */
@@ -16,34 +24,468 @@ body[data-theme='catppuccin-mocha'] {
 }
 
 .app {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  letter-spacing: 0;
+  color: inherit;
+}
+
+/* ツールバー */
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--yomu-pre-border);
+  background: var(--yomu-pre-bg);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  user-select: none;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 2px;
+}
+
+.toolbar-title {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toolbar-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.toolbar-progress {
+  color: var(--yomu-code-label-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yomu-fg);
+  cursor: pointer;
+}
+
+.tool-button:hover:not(:disabled) {
+  background: var(--yomu-code-bg);
+}
+
+.tool-button[aria-pressed='true'] {
+  background: var(--yomu-code-label-bg);
+  color: var(--yomu-link);
+}
+
+.tool-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 本文とサイドパネル */
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.scroller {
+  position: relative;
+  outline: none;
+  flex: 1;
+  min-width: 0;
   overflow: auto;
 }
 
-.empty {
-  display: grid;
-  height: 100%;
-  place-items: center;
-  color: var(--yomu-quote-fg);
+.side-panel {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--yomu-pre-bg);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.error-bar {
+.side-panel-tabs {
+  display: flex;
+  flex: none;
+  border-bottom: 1px solid var(--yomu-pre-border);
+}
+
+.side-panel-tabs button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+}
+
+.side-panel-tabs button[aria-selected='true'] {
+  border-bottom-color: var(--yomu-link);
+  color: var(--yomu-link);
+  font-weight: 600;
+}
+
+.side-panel-body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 0;
+}
+
+.side-panel-resizer {
+  flex: none;
+  width: 5px;
+  margin-left: -2px;
+  border-left: 1px solid var(--yomu-pre-border);
+  cursor: col-resize;
+}
+
+.side-panel-resizer:hover {
+  background: var(--yomu-code-label-bg);
+}
+
+.panel-empty {
+  margin: 12px 16px;
+  color: var(--yomu-code-label-fg);
+}
+
+/* 目次 */
+.outline ul {
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+  line-height: 1.5;
+}
+
+.outline > ul {
+  padding-left: 4px;
+}
+
+.outline li + li {
+  margin-top: 0;
+}
+
+.outline-item {
+  display: block;
+  width: 100%;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-item:hover {
+  background: var(--yomu-code-bg);
+}
+
+.outline-item[aria-current='true'] {
+  background: var(--yomu-code-label-bg);
+  color: var(--yomu-link);
+  font-weight: 600;
+}
+
+/* 読書の記録 */
+.history {
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+}
+
+.history-open {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-open:hover:not(:disabled) {
+  background: var(--yomu-code-bg);
+}
+
+.history-open:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.history-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-progress {
+  color: var(--yomu-code-label-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.history-item.finished .history-progress {
+  color: var(--yomu-link);
+  font-weight: 600;
+}
+
+.history-remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.history-remove:hover {
+  background: var(--yomu-code-bg);
+}
+
+/* 空の画面 */
+.empty {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+  color: var(--yomu-quote-fg);
+  font-family: system-ui, sans-serif;
+}
+
+.empty-body {
+  text-align: center;
+}
+
+.empty-recent {
+  margin-top: 2em;
+  text-align: left;
+}
+
+.empty-recent h2 {
+  margin: 0 0 0.4em;
+  border: none;
+  padding: 0;
+  font-size: 0.95em;
+  color: var(--yomu-code-label-fg);
+}
+
+.empty-recent ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.empty-recent button {
+  padding: 2px 0;
+  border: none;
+  background: transparent;
+  color: var(--yomu-link);
+  cursor: pointer;
+}
+
+.empty-recent button:hover {
+  text-decoration: underline;
+}
+
+.primary-button {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 6px;
+  background: var(--yomu-link);
+  color: var(--yomu-bg);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* エラーとお知らせの帯 */
+.message-bar {
   position: sticky;
   top: 0;
-  z-index: 1;
-  padding: 8px 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 16px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.message-bar span {
+  flex: 1;
+}
+
+.message-bar button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.message-bar.error {
   background: #b3261e;
   color: #fff;
+}
+
+.message-bar.notice {
+  background: var(--yomu-code-label-bg);
+  color: var(--yomu-fg);
 }
 
 .drop-overlay {
   position: fixed;
   inset: 0;
+  z-index: 10;
   display: grid;
   place-items: center;
   background: rgb(0 0 0 / 40%);
   color: #fff;
   font-size: 1.25rem;
   pointer-events: none;
+}
+
+/* 設定ダイアログ */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 35%);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 10px;
+  background: var(--yomu-bg);
+  color: var(--yomu-fg);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.dialog-header,
+.dialog-footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+}
+
+.dialog-header {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--yomu-pre-border);
+}
+
+.dialog-header h1 {
+  margin: 0;
+  padding: 0;
+  border: none;
+  font-size: 15px;
+  color: var(--yomu-fg);
+}
+
+.dialog-footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--yomu-pre-border);
+}
+
+.dialog-footer span {
+  flex: 1;
+}
+
+.dialog-footer button:not(.primary-button) {
+  padding: 5px 14px;
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 6px;
+  background: var(--yomu-pre-bg);
+  cursor: pointer;
+}
+
+.dialog-body {
+  overflow: auto;
+  padding: 4px 16px 12px;
+}
+
+.dialog-body h2 {
+  margin: 14px 0 6px;
+  padding: 0;
+  border: none;
+  font-size: 13px;
+  color: var(--yomu-h2);
+}
+
+.settings-field {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.settings-field input,
+.settings-field select {
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 4px;
+  background: var(--yomu-pre-bg);
+}
+
+.settings-note {
+  margin: 2px 0 0;
+  color: var(--yomu-code-label-fg);
+  font-size: 12px;
 }

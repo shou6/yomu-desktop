@@ -1,5 +1,5 @@
 import * as assert from 'node:assert';
-import { describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   HISTORY_LIMIT,
   formatProgress,
@@ -8,6 +8,7 @@ import {
   resumeScrollY,
   updateRecord,
   type ReadingRecords,
+  removeRecord,
 } from './reading';
 
 describe('progressFromScroll', () => {
@@ -99,5 +100,18 @@ describe('recentRecords', () => {
       recentRecords(records).map((r) => r.uri),
       ['b', 'c', 'a']
     );
+  });
+});
+
+describe('removeRecord', () => {
+  it('指定した文書の記録だけを消した新しい記録を返す', () => {
+    const records = {
+      'C:/a.md': { title: 'a.md', progress: 0.5, lastRead: 1 },
+      'C:/b.md': { title: 'b.md', progress: 1, lastRead: 2 },
+    };
+    expect(removeRecord(records, 'C:/a.md')).toEqual({
+      'C:/b.md': { title: 'b.md', progress: 1, lastRead: 2 },
+    });
+    expect(Object.keys(records)).toHaveLength(2);
   });
 });

@@ -30,7 +30,12 @@ export function createTranslator(bundle: Record<string, string> | undefined): Tr
 
 const bundles: Record<Language, Record<string, string> | undefined> = { en: undefined, ja };
 
-const current = createTranslator(bundles[resolveLanguage('auto', navigator.language)]);
+let current = createTranslator(bundles[resolveLanguage('auto', navigator.language)]);
+
+/** 画面の言語を切り替える。t はこの後の呼び出しから新しい言語で訳す（F-20） */
+export function setLanguage(language: Language): void {
+  current = createTranslator(bundles[language]);
+}
 
 /** 画面の文字列を訳す。第 1 引数は単一の文字列リテラルにする（訳の抜けをテストで検出するため） */
 export function t(text: string, ...args: (string | number)[]): string {

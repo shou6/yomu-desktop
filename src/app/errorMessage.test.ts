@@ -28,3 +28,16 @@ describe('errorMessage', () => {
     expect(errorMessage(new Error('boom'), t)).toBe('Could not read the file: boom');
   });
 });
+describe('errorMessage: 開く操作', () => {
+  it('プログラムやスクリプトは開かない旨を知らせる', () => {
+    expect(errorMessage({ kind: 'blocked', path: 'C:/docs/setup.exe' }, t)).toBe(
+      'Programs and scripts are not opened from links: setup.exe'
+    );
+  });
+
+  it('OS の既定のアプリで開けなかった旨を知らせる', () => {
+    expect(errorMessage({ kind: 'open_failed', path: 'C:/docs/a.pdf' }, t)).toBe(
+      'Could not open the file: a.pdf'
+    );
+  });
+});

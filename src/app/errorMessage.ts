@@ -24,6 +24,10 @@ export function errorMessage(error: unknown, t: Translator): string {
       return t('File is not UTF-8 text: {0}', name);
     case 'editor_failed':
       return t('Could not start the editor: {0}', name);
+    case 'blocked':
+      return t('Programs and scripts are not opened from links: {0}', name);
+    case 'open_failed':
+      return t('Could not open the file: {0}', name);
     case 'io':
       return t('Could not read the file: {0}', name);
   }
