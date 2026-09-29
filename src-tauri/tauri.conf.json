@@ -48,7 +48,8 @@
     "windows": {
       "nsis": {
         "languages": ["English", "Japanese"],
-        "displayLanguageSelector": false
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
       }
     },
     "macOS": {
