@@ -1,13 +1,60 @@
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as ipc from '../lib/ipc';
 import { DEFAULT_SETTINGS } from '../reader/readerSettings';
 import Reader from './Reader';
 
-afterEach(cleanup);
+vi.mock('../lib/ipc', () => ({
+  allowImages: vi.fn(),
+  fileUrl: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(ipc.allowImages).mockResolvedValue(undefined);
+  vi.mocked(ipc.fileUrl).mockImplementation((path: string) => `asset://${path}`);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 function file(content: string) {
-  return { path: 'C:/docs/a.md', content, baseDir: 'C:/docs' };
+  return { path: 'C:\\docs\\a.md', content, baseDir: 'C:\\docs' };
 }
+
+describe('Reader: 画像', () => {
+  it('ローカルの画像は、そのファイルだけを許可してから、asset の URL で出す', async () => {
+    const { container } = render(
+      <Reader
+        file={file('![a](./img/a.png)\n\n![b](../b.png)\n\n![w](https://example.com/w.png)\n')}
+        settings={DEFAULT_SETTINGS}
+      />
+    );
+    await waitFor(() => expect(container.querySelectorAll('#content img')).toHaveLength(3));
+    expect(ipc.allowImages).toHaveBeenCalledWith(['C:\\docs\\img\\a.png', 'C:\\b.png']);
+    const srcs = [...container.querySelectorAll('#content img')].map((img) =>
+      img.getAttribute('src')
+    );
+    expect(srcs).toEqual([
+      'asset://C:\\docs\\img\\a.png',
+      'asset://C:\\b.png',
+      'https://example.com/w.png',
+    ]);
+  });
+
+  it('画像の許可に失敗しても、本文は出す', async () => {
+    vi.mocked(ipc.allowImages).mockRejectedValue(new Error('denied'));
+    render(<Reader file={file('# 見出し\n\n![a](a.png)\n')} settings={DEFAULT_SETTINGS} />);
+    expect(await screen.findByRole('heading', { name: '見出し' })).toBeTruthy();
+  });
+
+  it('ローカルの画像が無ければ、許可を求めずにすぐ出す', () => {
+    render(<Reader file={file('# 見出し\n')} settings={DEFAULT_SETTINGS} />);
+    expect(screen.getByRole('heading', { name: '見出し' })).toBeTruthy();
+    expect(ipc.allowImages).not.toHaveBeenCalled();
+  });
+});
 
 describe('Reader', () => {
   it('Markdown を HTML にして #content に出す。見出しには GitHub と同じ規則の ID を付ける', () => {

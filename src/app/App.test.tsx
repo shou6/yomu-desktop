@@ -12,6 +12,8 @@ vi.mock('../lib/ipc', async (importOriginal) => {
     readMarkdownFile: vi.fn(),
     onOpenFile: vi.fn(),
     onDragDrop: vi.fn(),
+    allowImages: vi.fn(async () => undefined),
+    fileUrl: vi.fn((path: string) => path),
   };
 });
 

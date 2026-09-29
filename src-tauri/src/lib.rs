@@ -1,5 +1,6 @@
 mod error;
 mod file;
+mod image;
 mod pending;
 
 use error::AppError;
