@@ -33,17 +33,22 @@ jobs:
     outputs:
       release-id: ${{ steps.create.outputs.release-id }}
     steps:
+      # 作った直後の下書きは一覧の API にまだ出ないことがあるため、作成の応答から ID を受け取る
       - id: create
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --draft \
-            --title "$GITHUB_REF_NAME" \
-            --notes "See [CHANGELOG.md](https://github.com/$GH_REPO/blob/main/CHANGELOG.md)." \
-            --verify-tag
-          id="$(gh api "repos/$GH_REPO/releases" --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id")"
+          id="$(gh api -X POST "repos/$GH_REPO/releases" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            -f name="$GITHUB_REF_NAME" \
+            -f body="See [CHANGELOG.md](https://github.com/$GH_REPO/blob/main/CHANGELOG.md)." \
+            -F draft=true \
+            --jq .id)"
+          if [ -z "$id" ]; then
+            echo "Could not create the draft release" >&2
+            exit 1
+          fi
           echo "release-id=$id" >> "$GITHUB_OUTPUT"
 
   build:
