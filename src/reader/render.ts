@@ -2,14 +2,19 @@
  * Markdown を HTML に変換する（純粋関数）。
  * 生の HTML は決めたタグ（details など）だけを通し、ローカルの画像（相対パスと絶対パス）を本文で読める URL に書き換える。
  */
-import katex from '@vscode/markdown-it-katex';
+import katexModule from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
 import MarkdownIt, { type MarkdownIt as MarkdownItInstance } from 'markdown-it';
 import anchor from 'markdown-it-anchor';
 import footnote from 'markdown-it-footnote';
-import taskLists from 'markdown-it-task-lists';
+import taskListsModule from 'markdown-it-task-lists';
 import { DEFAULT_FRONT_MATTER_OPTIONS, type FrontMatterOptions, frontMatter } from './frontMatter';
 import { htmlAllowlist } from './htmlAllowlist';
+import { interopDefault } from './interopDefault';
+
+// CommonJS の配布物。ビルドの仕方によって default が 1 段深くなるので、関数を取り出して使う
+const katex = interopDefault(katexModule);
+const taskLists = interopDefault(taskListsModule);
 
 export interface RenderOptions {
   /** ローカルの画像（相対パスと絶対パス）の src を、本文で読める URL に変換する */
