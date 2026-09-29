@@ -1,5 +1,5 @@
 // アプリのコマンドを列挙し、capabilities で許可したものだけをフロントから呼べるようにする
-const COMMANDS: &[&str] = &["take_pending_file", "read_markdown_file"];
+const COMMANDS: &[&str] = &["take_pending_file", "read_markdown_file", "allow_images"];
 
 fn main() {
     tauri_build::try_build(

@@ -12,6 +12,8 @@ vi.mock('../lib/ipc', async (importOriginal) => {
     readMarkdownFile: vi.fn(),
     onOpenFile: vi.fn(),
     onDragDrop: vi.fn(),
+    allowImages: vi.fn(async () => undefined),
+    fileUrl: vi.fn((path: string) => path),
   };
 });
 
@@ -66,6 +68,17 @@ describe('App', () => {
     await renderReady();
     expect(await screen.findByText(/first/)).toBeTruthy();
     expect(ipc.readMarkdownFile).toHaveBeenCalledWith('C:/docs/a.md');
+  });
+
+  it('開いた文書は Markdown として描画する', async () => {
+    vi.mocked(ipc.takePendingFile).mockResolvedValue('C:/docs/a.md');
+    await renderReady();
+    expect(await screen.findByRole('heading', { level: 1, name: 'A' })).toBeTruthy();
+  });
+
+  it('テーマを body に付ける。既定の auto は OS の明暗で決める（matchMedia が無ければライト）', async () => {
+    await renderReady();
+    expect(document.body.dataset.theme).toBe('paper');
   });
 
   it('二重起動で転送されたファイルを開き、文書を差し替える', async () => {

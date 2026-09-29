@@ -3,5 +3,10 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": ["main"],
-  "permissions": ["core:default", "allow-take-pending-file", "allow-read-markdown-file"]
+  "permissions": [
+    "core:default",
+    "allow-take-pending-file",
+    "allow-read-markdown-file",
+    "allow-allow-images"
+  ]
 }

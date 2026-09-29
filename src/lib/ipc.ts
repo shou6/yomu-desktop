@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 
@@ -36,6 +36,16 @@ export function takePendingFile(): Promise<string | null> {
 /** Markdown を読む。失敗した時は AppError で reject する */
 export function readMarkdownFile(path: string): Promise<MarkdownFile> {
   return invoke<MarkdownFile>('read_markdown_file', { path });
+}
+
+/** 本文の画像のファイルだけを asset プロトコルで読めるようにする。画像でないものや無いファイルは Rust が無視する */
+export function allowImages(paths: string[]): Promise<void> {
+  return invoke<void>('allow_images', { paths });
+}
+
+/** ローカルのファイルを、本文から読める asset プロトコルの URL にする */
+export function fileUrl(path: string): string {
+  return convertFileSrc(path);
 }
 
 /** 二重起動で転送されたファイルを受け取る */

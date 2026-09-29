@@ -48,6 +48,14 @@ describe('render: 画像', () => {
     assert.ok(out.includes('alt="alt"'), out);
   });
 
+  it('絶対パスの画像（Windows のドライブ名、UNC、/ で始まるもの）も書き換える', () => {
+    const out = html('![w](C:/pic/a.png)\n\n![u](//server/share/b.png)\n\n![p](/tmp/c.png)\n');
+    assert.ok(out.includes('src="https://webview.test/doc/C:/pic/a.png"'), out);
+    assert.ok(out.includes('src="https://webview.test/doc//tmp/c.png"'), out);
+    // // で始まるものはプロトコル相対の URL として、そのまま残す
+    assert.ok(out.includes('src="//server/share/b.png"'), out);
+  });
+
   it('https と data の画像はそのまま', () => {
     const out = html('![a](https://example.com/a.png)\n\n![d](data:image/png;base64,AAAA)\n');
     assert.ok(out.includes('src="https://example.com/a.png"'), out);
