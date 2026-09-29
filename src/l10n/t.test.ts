@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTranslator, resolveLanguage } from './t';
+import { createTranslator, resolveLanguage, setLanguage, t } from './t';
 
 describe('resolveLanguage', () => {
   it('auto では OS の言語が日本語なら ja、それ以外は en', () => {
@@ -35,5 +35,14 @@ describe('createTranslator', () => {
 
   it('対応する引数が無い差し込み位置は残す', () => {
     expect(createTranslator(undefined)('Opened {0} of {1}', 3)).toBe('Opened 3 of {1}');
+  });
+});
+
+describe('setLanguage', () => {
+  it('t の言語を、再起動せずに切り替える', () => {
+    setLanguage('ja');
+    expect(t('Front matter')).toBe('フロントマター');
+    setLanguage('en');
+    expect(t('Front matter')).toBe('Front matter');
   });
 });

@@ -1,7 +1,11 @@
+mod editor;
 mod error;
 mod file;
 mod image;
+mod open;
 mod pending;
+mod store;
+mod watcher;
 
 use error::AppError;
 use file::MarkdownFile;
