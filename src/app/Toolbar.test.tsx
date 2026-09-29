@@ -19,6 +19,10 @@ function props(overrides: Partial<ToolbarProps> = {}): ToolbarProps {
     onOpenInEditor: vi.fn(),
     onOpenFile: vi.fn(),
     onSettings: vi.fn(),
+    focusMode: false,
+    onSearch: vi.fn(),
+    onToggleFocus: vi.fn(),
+    onPrint: vi.fn(),
     ...overrides,
   };
 }
@@ -81,5 +85,28 @@ describe('Toolbar', () => {
     expect(screen.getByRole('button', { name: 'Outline' }).getAttribute('aria-pressed')).toBe(
       'false'
     );
+  });
+
+  it('検索、集中モード、印刷のボタン。集中モードは今の状態をボタンで表す', () => {
+    const p = props({ focusMode: true });
+    render(<Toolbar {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Find' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Focus Mode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    expect(p.onSearch).toHaveBeenCalled();
+    expect(p.onToggleFocus).toHaveBeenCalled();
+    expect(p.onPrint).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Focus Mode' }).getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+    expect(screen.getByRole('button', { name: 'Focus Mode' }).getAttribute('title')).toBe(
+      'Focus Mode (Ctrl+Shift+F)'
+    );
+  });
+
+  it('文書が無い時は、検索と印刷は押せない', () => {
+    render(<Toolbar {...props({ filePath: undefined, progress: undefined })} />);
+    expect(screen.getByRole('button', { name: 'Find' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Print' })).toHaveProperty('disabled', true);
   });
 });

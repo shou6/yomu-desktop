@@ -201,4 +201,32 @@ mod tests {
             serde_json::json!({ "path": r"C:\docs\a.md", "content": "text", "baseDir": r"C:\docs" })
         );
     }
+
+    #[test]
+    fn reads_custom_css_and_strips_the_bom() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write(dir.path(), "my.CSS", b"\xEF\xBB\xBFbody { color: red; }");
+        assert_eq!(read_css(&path).unwrap(), "body { color: red; }");
+    }
+
+    #[test]
+    fn custom_css_must_be_a_css_file_under_1_mib() {
+        let dir = tempfile::tempdir().unwrap();
+        let text = write(dir.path(), "a.txt", b"x");
+        assert_eq!(read_css(&text).unwrap_err().kind, ErrorKind::UnsupportedType);
+        let missing = dir.path().join("missing.css");
+        assert_eq!(
+            read_css(&missing.to_string_lossy()).unwrap_err().kind,
+            ErrorKind::NotFound
+        );
+        let large = dir.path().join("large.css");
+        fs::File::create(&large)
+            .unwrap()
+            .set_len(MAX_CSS_SIZE + 1)
+            .unwrap();
+        assert_eq!(
+            read_css(&large.to_string_lossy()).unwrap_err().kind,
+            ErrorKind::TooLarge
+        );
+    }
 }

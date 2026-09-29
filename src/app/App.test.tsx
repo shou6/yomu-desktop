@@ -29,6 +29,9 @@ vi.mock('../lib/ipc', async (importOriginal) => {
     openInEditor: vi.fn(async () => undefined),
     setWindowTitle: vi.fn(async () => undefined),
     isMac: vi.fn(() => false),
+    readCustomCss: vi.fn(),
+    onCustomCssChanged: vi.fn(async () => () => {}),
+    chooseCssFile: vi.fn(),
   };
 });
 
@@ -61,6 +64,7 @@ beforeEach(() => {
     dragDropHandler = handler;
     return () => {};
   });
+  vi.mocked(ipc.readCustomCss).mockResolvedValue('body { color: red; }');
   vi.mocked(ipc.onFileChanged).mockImplementation(async (handler) => {
     fileChangedHandler = handler;
     return () => {};
@@ -219,5 +223,81 @@ describe('App: エディタで開く', () => {
       fireEvent.keyDown(window, { key: 'e', ctrlKey: true });
     });
     expect(ipc.openInEditor).toHaveBeenCalledWith('C:\\docs\\a.md', 1, '');
+  });
+});
+
+describe('App: 読む機能', () => {
+  it('Ctrl+F で検索バーを出し、一致の件数を出す。Esc で閉じて強調を消す', async () => {
+    await openA();
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'f', ctrlKey: true });
+    });
+    const input = screen.getByRole('searchbox', { name: 'Find' });
+    fireEvent.change(input, { target: { value: 'first' } });
+    expect(await screen.findByText('1/1')).toBeTruthy();
+    expect(document.querySelectorAll('mark.yomu-search-match')).toHaveLength(1);
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(document.querySelectorAll('mark.yomu-search-match')).toHaveLength(0);
+  });
+
+  it('Ctrl+Shift+F で集中モードを切り替え、設定に保存する', async () => {
+    await openA();
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'F', ctrlKey: true, shiftKey: true });
+    });
+    expect(document.body.classList.contains('yomu-focus-mode')).toBe(true);
+    await waitFor(() =>
+      expect(ipc.saveStore).toHaveBeenCalledWith(
+        'settings',
+        expect.objectContaining({ focusMode: true })
+      )
+    );
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'F', ctrlKey: true, shiftKey: true });
+    });
+    expect(document.body.classList.contains('yomu-focus-mode')).toBe(false);
+  });
+
+  it('Ctrl+P で印刷し、印刷の間だけ白地の paper にする', async () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {
+      window.dispatchEvent(new Event('beforeprint'));
+      expect(document.body.dataset.theme).toBe('paper');
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    vi.mocked(ipc.loadStore).mockImplementation(async (name) =>
+      name === 'settings'
+        ? { value: { theme: 'nord' }, corrupt: false }
+        : { value: null, corrupt: false }
+    );
+    await openA();
+    await waitFor(() => expect(document.body.dataset.theme).toBe('nord'));
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'p', ctrlKey: true });
+    });
+    expect(print).toHaveBeenCalled();
+    expect(document.body.dataset.theme).toBe('nord');
+    print.mockRestore();
+  });
+
+  it('カスタム CSS をテーマの後に読み込む。読めない時はその旨を一度だけ知らせる', async () => {
+    vi.mocked(ipc.loadStore).mockImplementation(async (name) =>
+      name === 'settings'
+        ? { value: { customCss: 'C:/docs/my.css' }, corrupt: false }
+        : { value: null, corrupt: false }
+    );
+    await renderReady();
+    await waitFor(() =>
+      expect(document.getElementById('yomu-custom-css')?.textContent).toBe('body { color: red; }')
+    );
+    expect(ipc.readCustomCss).toHaveBeenCalledWith('C:/docs/my.css');
+    cleanup();
+    document.getElementById('yomu-custom-css')?.remove();
+    vi.mocked(ipc.readCustomCss).mockRejectedValue({ kind: 'not_found', path: 'C:/docs/my.css' });
+    await renderReady();
+    expect(
+      await screen.findByText('Could not load the custom CSS: my.css. Showing the theme as is.')
+    ).toBeTruthy();
+    expect(document.getElementById('yomu-custom-css')).toBeNull();
   });
 });
