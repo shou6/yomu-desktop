@@ -1,14 +1,18 @@
-/* 画面の枠。本文の組版は reader.css（フェーズ 3 で Yomu から移植する）に置く */
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-}
-
+/* 画面の枠。本文の組版は reader.css、色はテーマ（themes/*.css）の変数を使う */
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+/* ダーク系のテーマでは、スクロールバーなどのブラウザの部品も暗くする */
+body[data-theme='dark'],
+body[data-theme='solarized-dark'],
+body[data-theme='github-dark'],
+body[data-theme='nord'],
+body[data-theme='catppuccin-mocha'] {
+  color-scheme: dark;
 }
 
 .app {
@@ -21,14 +25,7 @@ body,
   display: grid;
   height: 100%;
   place-items: center;
-  opacity: 0.7;
-}
-
-.source {
-  margin: 0;
-  padding: 24px 32px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  color: var(--yomu-quote-fg);
 }
 
 .error-bar {

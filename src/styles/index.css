@@ -1,0 +1,19 @@
+/*
+ * 画面に読み込む CSS の一覧。main.tsx から読み込む。
+ * テーマは全部読み込み、body の data-theme で切り替える（applySettings.ts）
+ */
+@import './fonts.css';
+@import 'katex/dist/katex.min.css';
+@import './reader.css';
+@import './highlight.css';
+@import './themes/paper.css';
+@import './themes/sepia.css';
+@import './themes/dark.css';
+@import './themes/solarized-light.css';
+@import './themes/solarized-dark.css';
+@import './themes/github-light.css';
+@import './themes/github-dark.css';
+@import './themes/nord.css';
+@import './themes/catppuccin-latte.css';
+@import './themes/catppuccin-mocha.css';
+@import './app.css';

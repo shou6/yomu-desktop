@@ -8,12 +8,23 @@ import {
   type MarkdownFile,
   type Unlisten,
 } from '../lib/ipc';
+import { DEFAULT_SETTINGS } from '../reader/readerSettings';
+import { applySettings } from './applySettings';
 import { errorMessage } from './errorMessage';
+import Reader from './Reader';
+import { useOsDark } from './useOsDark';
 
 function App() {
   const [file, setFile] = useState<MarkdownFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  // 設定の保存と設定ダイアログはフェーズ 4（F-6、F-7）。それまでは既定値で描く
+  const settings = DEFAULT_SETTINGS;
+  const osIsDark = useOsDark();
+
+  useEffect(() => {
+    applySettings(settings, osIsDark);
+  }, [settings, osIsDark]);
 
   // 開けなかった時は、表示中の文書を残してエラーの帯だけを出す
   const open = useCallback(async (path: string) => {
@@ -77,7 +88,7 @@ function App() {
         </div>
       )}
       {file ? (
-        <pre className="source">{file.content}</pre>
+        <Reader file={file} settings={settings} />
       ) : (
         <div className="empty">
           <p>{t('Drop a Markdown file here')}</p>
