@@ -1,3 +1,32 @@
+use std::collections::BTreeSet;
+use std::path::{Path, PathBuf};
+
+/// 本文に出す画像として許可する拡張子
+const IMAGE_EXTENSIONS: [&str; 9] = [
+    "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif", "ico",
+];
+
+fn is_image(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| {
+            IMAGE_EXTENSIONS
+                .iter()
+                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+        })
+}
+
+/// asset プロトコルに許可してよい画像のパス。画像の拡張子で、存在するファイルだけを返す。
+/// フロントが渡したパスを信用せず、画像以外のファイルを読ませないためにここで絞る
+pub fn allowed_images(paths: &[String]) -> Vec<PathBuf> {
+    let unique: BTreeSet<PathBuf> = paths
+        .iter()
+        .map(PathBuf::from)
+        .filter(|path| is_image(path) && path.is_file())
+        .collect();
+    unique.into_iter().collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

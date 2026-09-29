@@ -2,6 +2,13 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
-  "permissions": ["core:default", "allow-take-pending-file", "allow-read-markdown-file"]
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "allow-take-pending-file",
+    "allow-read-markdown-file",
+    "allow-allow-images"
+  ]
 }

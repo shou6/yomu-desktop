@@ -1,6 +1,6 @@
 /**
  * Markdown を HTML に変換する（純粋関数）。
- * 生の HTML は決めたタグ（details など）だけを通し、相対パスの画像だけを本文で読める URL に書き換える。
+ * 生の HTML は決めたタグ（details など）だけを通し、ローカルの画像（相対パスと絶対パス）を本文で読める URL に書き換える。
  */
 import katex from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
@@ -12,7 +12,7 @@ import { DEFAULT_FRONT_MATTER_OPTIONS, type FrontMatterOptions, frontMatter } fr
 import { htmlAllowlist } from './htmlAllowlist';
 
 export interface RenderOptions {
-  /** 相対パスの画像の src を、本文で読める URL に変換する */
+  /** ローカルの画像（相対パスと絶対パス）の src を、本文で読める URL に変換する */
   resolveImageSrc: (src: string) => string;
   /** front matter の見せ方。無ければ閉じた折りたたみ */
   frontMatter?: FrontMatterOptions;
@@ -30,8 +30,8 @@ const LINE_BLOCKS = new Set([
   'code_block',
 ]);
 
-/** スキーム付き（https:、data: など）か、プロトコル相対（//）の URL */
-const ABSOLUTE_URL = /^([a-z][a-z0-9+.-]*:|\/\/)/i;
+/** スキーム付き（https:、data: など）か、プロトコル相対（//）の URL。1 文字のスキームは Windows のドライブ名（C:）とみなし、ファイルのパスとして扱う */
+const ABSOLUTE_URL = /^([a-z][a-z0-9+.-]+:|\/\/)/i;
 
 /**
  * 見出しの ID。GitHub と同じ規則で、日本語はそのまま残す。

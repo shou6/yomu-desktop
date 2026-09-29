@@ -18,6 +18,15 @@ fn read_markdown_file(path: String) -> Result<MarkdownFile, AppError> {
     file::read_markdown(&path)
 }
 
+/// 本文の画像を asset プロトコルで読めるようにする。画像でないものと無いファイルは無視する
+#[tauri::command]
+fn allow_images(app: tauri::AppHandle, paths: Vec<String>) {
+    let scope = app.asset_protocol_scope();
+    for path in image::allowed_images(&paths) {
+        let _ = scope.allow_file(path);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -41,7 +50,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             take_pending_file,
-            read_markdown_file
+            read_markdown_file,
+            allow_images
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

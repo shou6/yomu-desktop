@@ -8,7 +8,7 @@ describe('resolveImagePath', () => {
     expect(resolveImagePath(win, './images/a.png')).toBe('C:\\docs\\設計\\images\\a.png');
     expect(resolveImagePath(win, '../assets/b.png')).toBe('C:\\docs\\assets\\b.png');
     expect(resolveImagePath(win, 'c.png')).toBe('C:\\docs\\設計\\c.png');
-    expect(resolveImagePath(win, 'x/../../../y.png')).toBe('C:\\docs\\y.png');
+    expect(resolveImagePath(win, 'x/../../y.png')).toBe('C:\\docs\\y.png');
   });
 
   it('相対パスは文書のフォルダから解決する（macOS と Linux）', () => {
