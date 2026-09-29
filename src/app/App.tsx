@@ -8,7 +8,7 @@ import {
   type MarkdownFile,
   type Unlisten,
 } from '../lib/ipc';
-import { DEFAULT_SETTINGS } from '../reader/readerSettings';
+import { DEFAULT_SETTINGS, resolveTheme } from '../reader/readerSettings';
 import { applySettings } from './applySettings';
 import { errorMessage } from './errorMessage';
 import Reader from './Reader';
@@ -88,7 +88,7 @@ function App() {
         </div>
       )}
       {file ? (
-        <Reader file={file} settings={settings} />
+        <Reader file={file} settings={settings} theme={resolveTheme(settings.theme, osIsDark)} />
       ) : (
         <div className="empty">
           <p>{t('Drop a Markdown file here')}</p>
