@@ -35,9 +35,12 @@ describe('SettingsDialog', () => {
     expect(screen.queryByRole('button', { name: 'Apply' })).toBeNull();
   });
 
-  it('範囲外の数値は、既定値に丸めてから渡す', () => {
+  it('範囲外の数値は、入力の途中では反映せず、欄を離れた時に既定値に丸めて渡す', () => {
     const { onChange } = setup();
-    fireEvent.change(screen.getByLabelText('Font size (px)'), { target: { value: '500' } });
+    const input = screen.getByLabelText('Font size (px)');
+    fireEvent.change(input, { target: { value: '500' } });
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.blur(input);
     expect(onChange).toHaveBeenLastCalledWith(DEFAULT_SETTINGS);
   });
 

@@ -85,3 +85,8 @@ export function recentRecords(records: ReadingRecords): (ReadingRecord & { uri: 
     .map(([uri, record]) => ({ uri, ...record }))
     .sort((a, b) => b.lastRead - a.lastRead);
 }
+
+/** 文書の記録を消した、新しい記録を返す（元の記録は書き換えない） */
+export function removeRecord(records: ReadingRecords, uri: string): ReadingRecords {
+  return Object.fromEntries(Object.entries(records).filter(([key]) => key !== uri));
+}
