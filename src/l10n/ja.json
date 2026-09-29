@@ -52,5 +52,21 @@
   "Reset to Defaults": "既定に戻す",
   "Back": "戻る",
   "Forward": "進む",
-  "Open in Editor": "エディタで開く"
+  "Open in Editor": "エディタで開く",
+  "Could not load the custom CSS: {0}. Showing the theme as is.": "カスタム CSS を読めません：{0}。テーマの見た目のまま表示します。",
+  "Choose a CSS File": "CSS ファイルを選ぶ",
+  "CSS": "CSS",
+  "Show all {0} lines": "全 {0} 行を表示",
+  "Collapse": "折りたたむ",
+  "Find": "検索",
+  "No results": "見つかりません",
+  "Focus mode": "集中モード",
+  "Code": "コード",
+  "Fold code longer than (lines, 0 to never fold)": "これより長いコードを畳む（行、0 で畳まない）",
+  "Custom CSS": "カスタム CSS",
+  "CSS file": "CSS ファイル",
+  "Choose…": "選ぶ…",
+  "Loaded after the theme. The theme colors are the --yomu-* CSS variables.": "テーマの後に読み込みます。テーマの色は --yomu-* の CSS 変数で持っています。",
+  "Focus Mode": "集中モード",
+  "Print": "印刷"
 }

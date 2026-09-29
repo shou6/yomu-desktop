@@ -124,6 +124,34 @@ export function isMac(): boolean {
   return /Mac/i.test(navigator.platform) || /Mac OS X/.test(navigator.userAgent);
 }
 
+/** カスタム CSS を読み、保存したら custom-css-changed で知らせるよう監視する（F-17） */
+export function readCustomCss(path: string): Promise<string> {
+  return invoke<string>('read_custom_css', { path });
+}
+
+/** カスタム CSS の監視をやめる */
+export function stopCustomCss(): Promise<void> {
+  return invoke<void>('stop_custom_css');
+}
+
+export function onCustomCssChanged(handler: (change: FileChange) => void): Promise<Unlisten> {
+  return listen<FileChange>('custom-css-changed', (event) => handler(event.payload));
+}
+
+/** CSS ファイルを選ぶダイアログ。選ばなければ null */
+export async function chooseCssFile(labels: {
+  title: string;
+  filterName: string;
+}): Promise<string | null> {
+  const selected = await open({
+    title: labels.title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: labels.filterName, extensions: ['css'] }],
+  });
+  return typeof selected === 'string' ? selected : null;
+}
+
 /** 開いている文書の保存と削除を受け取る */
 export function onFileChanged(handler: (change: FileChange) => void): Promise<Unlisten> {
   return listen<FileChange>('file-changed', (event) => handler(event.payload));

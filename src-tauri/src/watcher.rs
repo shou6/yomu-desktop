@@ -42,12 +42,27 @@ pub fn change_kind(target: &Path) -> ChangeKind {
 
 type FolderDebouncer = Debouncer<notify::RecommendedWatcher, RecommendedCache>;
 
-/// 監視は 1 つの文書だけ。別の文書を開いたら張り替える
+/// 1 つのファイルだけを監視する。別のファイルを監視したら張り替える
 #[derive(Default)]
-pub struct DocumentWatcher(Mutex<Option<FolderDebouncer>>);
+pub struct FileWatcher(Mutex<Option<FolderDebouncer>>);
 
-impl DocumentWatcher {
-    pub fn watch(&self, app: &AppHandle, path: &str) {
+/// 開いている文書の監視。変化を `file-changed` で送る
+#[derive(Default)]
+pub struct DocumentWatcher(pub FileWatcher);
+
+/// カスタム CSS の監視（F-17）。変化を `custom-css-changed` で送る
+#[derive(Default)]
+pub struct CssWatcher(pub FileWatcher);
+
+impl FileWatcher {
+    /// 監視をやめる
+    pub fn stop(&self) {
+        if let Ok(mut guard) = self.0.lock() {
+            *guard = None;
+        }
+    }
+
+    pub fn watch(&self, app: &AppHandle, path: &str, event: &'static str) {
         let Ok(mut guard) = self.0.lock() else {
             return;
         };
@@ -65,7 +80,7 @@ impl DocumentWatcher {
             };
             if events.iter().any(|event| touches(&event.paths, &target)) {
                 let _ = app.emit(
-                    "file-changed",
+                    event,
                     FileChanged {
                         path: reported.clone(),
                         kind: change_kind(&target),

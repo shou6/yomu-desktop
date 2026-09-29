@@ -20,6 +20,11 @@ export interface ToolbarProps {
   onOpenInEditor: () => void;
   onOpenFile: () => void;
   onSettings: () => void;
+  /** 集中モードがオンか。ボタンのアイコンで今の状態を表す（F-14） */
+  focusMode: boolean;
+  onSearch: () => void;
+  onToggleFocus: () => void;
+  onPrint: () => void;
 }
 
 function fileName(path: string): string {
@@ -104,6 +109,30 @@ function Toolbar(props: ToolbarProps) {
         )}
       </div>
       <div className="toolbar-group">
+        <ToolButton
+          icon="search"
+          label={t('Find')}
+          keys="Mod+F"
+          isMac={isMac}
+          disabled={filePath === undefined}
+          onClick={props.onSearch}
+        />
+        <ToolButton
+          icon={props.focusMode ? 'focusOn' : 'focus'}
+          label={t('Focus Mode')}
+          keys="Mod+Shift+F"
+          isMac={isMac}
+          pressed={props.focusMode}
+          onClick={props.onToggleFocus}
+        />
+        <ToolButton
+          icon="print"
+          label={t('Print')}
+          keys="Mod+P"
+          isMac={isMac}
+          disabled={filePath === undefined}
+          onClick={props.onPrint}
+        />
         <ToolButton
           icon="editor"
           label={t('Open in Editor')}

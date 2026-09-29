@@ -9,6 +9,8 @@
     "dialog:allow-open",
     "allow-take-pending-file",
     "allow-read-markdown-file",
+    "allow-read-custom-css",
+    "allow-stop-custom-css",
     "allow-allow-images",
     "allow-load-store",
     "allow-save-store",

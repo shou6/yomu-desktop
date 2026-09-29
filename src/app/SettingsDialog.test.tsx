@@ -6,7 +6,12 @@ import SettingsDialog from './SettingsDialog';
 afterEach(cleanup);
 
 function setup(settings = DEFAULT_SETTINGS) {
-  const handlers = { onChange: vi.fn(), onReset: vi.fn(), onClose: vi.fn() };
+  const handlers = {
+    onChange: vi.fn(),
+    onReset: vi.fn(),
+    onClose: vi.fn(),
+    onChooseCustomCss: vi.fn(),
+  };
   render(<SettingsDialog settings={settings} {...handlers} />);
   return handlers;
 }
@@ -14,7 +19,7 @@ function setup(settings = DEFAULT_SETTINGS) {
 describe('SettingsDialog', () => {
   it('分類ごとに見出しを出す', () => {
     setup();
-    for (const name of ['Display', 'Layout', 'Text', 'Editor', 'Language']) {
+    for (const name of ['Display', 'Layout', 'Text', 'Code', 'Editor', 'Language', 'Custom CSS']) {
       expect(screen.getByRole('heading', { name })).toBeTruthy();
     }
   });
@@ -58,5 +63,19 @@ describe('SettingsDialog', () => {
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('集中モード、折りたたみの行数、カスタム CSS を変えられる', () => {
+    const { onChange, onChooseCustomCss } = setup();
+    fireEvent.click(screen.getByLabelText('Focus mode'));
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_SETTINGS, focusMode: true });
+    fireEvent.change(screen.getByLabelText('Fold code longer than (lines, 0 to never fold)'), {
+      target: { value: '40' },
+    });
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_SETTINGS, foldLines: 40 });
+    fireEvent.change(screen.getByLabelText('CSS file'), { target: { value: 'C:/my.css' } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...DEFAULT_SETTINGS, customCss: 'C:/my.css' });
+    fireEvent.click(screen.getByRole('button', { name: 'Choose…' }));
+    expect(onChooseCustomCss).toHaveBeenCalled();
   });
 });

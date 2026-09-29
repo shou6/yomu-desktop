@@ -15,6 +15,8 @@ interface SettingsDialogProps {
   onChange: (settings: ReaderSettings) => void;
   onReset: () => void;
   onClose: () => void;
+  /** カスタム CSS のファイルを選ぶダイアログを開く */
+  onChooseCustomCss: () => void;
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -26,7 +28,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-type NumberKey = 'maxWidth' | 'padding' | 'fontSize' | 'lineHeight';
+type NumberKey = 'maxWidth' | 'padding' | 'fontSize' | 'lineHeight' | 'foldLines';
 
 interface NumberFieldProps {
   label: string;
@@ -74,11 +76,14 @@ function NumberField({ label, field, settings, min, max, step, onChange }: Numbe
   );
 }
 
-/**
- * 設定ダイアログ（F-7）。値を変えるとすぐに反映して保存する。「適用」ボタンは置かない。
- * 集中モード、コードの折りたたみ、カスタム CSS の項目は、機能と一緒にフェーズ 5 で足す
- */
-function SettingsDialog({ settings, onChange, onReset, onClose }: SettingsDialogProps) {
+/** 設定ダイアログ（F-7）。値を変えるとすぐに反映して保存する。「適用」ボタンは置かない */
+function SettingsDialog({
+  settings,
+  onChange,
+  onReset,
+  onClose,
+  onChooseCustomCss,
+}: SettingsDialogProps) {
   const [confirming, setConfirming] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -149,6 +154,14 @@ function SettingsDialog({ settings, onChange, onReset, onClose }: SettingsDialog
                 ))}
               </select>
             </Field>
+            <label className="settings-field settings-check">
+              <span>{t('Focus mode')}</span>
+              <input
+                type="checkbox"
+                checked={settings.focusMode}
+                onChange={(e) => change({ focusMode: e.target.checked })}
+              />
+            </label>
           </section>
 
           <section>
@@ -214,6 +227,17 @@ function SettingsDialog({ settings, onChange, onReset, onClose }: SettingsDialog
           </section>
 
           <section>
+            <h2>{t('Code')}</h2>
+            <NumberField
+              label={t('Fold code longer than (lines, 0 to never fold)')}
+              field="foldLines"
+              min={0}
+              settings={settings}
+              onChange={onChange}
+            />
+          </section>
+
+          <section>
             <h2>{t('Editor')}</h2>
             <Field label={t('Editor command')}>
               <input
@@ -242,6 +266,25 @@ function SettingsDialog({ settings, onChange, onReset, onClose }: SettingsDialog
                 <option value="ja">日本語</option>
               </select>
             </Field>
+          </section>
+
+          <section>
+            <h2>{t('Custom CSS')}</h2>
+            <Field label={t('CSS file')}>
+              <span className="settings-file">
+                <input
+                  type="text"
+                  value={settings.customCss}
+                  onChange={(e) => change({ customCss: e.target.value })}
+                />
+                <button type="button" onClick={onChooseCustomCss}>
+                  {t('Choose…')}
+                </button>
+              </span>
+            </Field>
+            <p className="settings-note">
+              {t('Loaded after the theme. The theme colors are the --yomu-* CSS variables.')}
+            </p>
           </section>
         </div>
         <footer className="dialog-footer">

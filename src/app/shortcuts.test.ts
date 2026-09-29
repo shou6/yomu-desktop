@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shortcutAction } from './shortcuts';
+import { isBlockedBrowserKey, shortcutAction } from './shortcuts';
 
 function key(
   key: string,
@@ -32,5 +32,31 @@ describe('shortcutAction', () => {
     expect(shortcutAction(key('o'), false)).toBeUndefined();
     expect(shortcutAction(key('o', { ctrlKey: true, altKey: true }), false)).toBeUndefined();
     expect(shortcutAction(key('ArrowLeft'), false)).toBeUndefined();
+  });
+});
+
+describe('shortcutAction: 読む機能', () => {
+  it('Ctrl+P で印刷、Ctrl+F で検索、Ctrl+Shift+F で集中モード', () => {
+    expect(shortcutAction(key('p', { ctrlKey: true }), false)).toBe('print');
+    expect(shortcutAction(key('f', { ctrlKey: true }), false)).toBe('search');
+    expect(shortcutAction(key('F', { ctrlKey: true, shiftKey: true }), false)).toBe('toggleFocus');
+    expect(shortcutAction(key('f', { metaKey: true, shiftKey: true }), true)).toBe('toggleFocus');
+  });
+});
+
+describe('isBlockedBrowserKey', () => {
+  it('再読み込みと開発者ツールのキーを止める（要件定義 3.3 節）', () => {
+    expect(isBlockedBrowserKey(key('F5'))).toBe(true);
+    expect(isBlockedBrowserKey(key('r', { ctrlKey: true }))).toBe(true);
+    expect(isBlockedBrowserKey(key('R', { ctrlKey: true, shiftKey: true }))).toBe(true);
+    expect(isBlockedBrowserKey(key('r', { metaKey: true }))).toBe(true);
+    expect(isBlockedBrowserKey(key('F12'))).toBe(true);
+    expect(isBlockedBrowserKey(key('I', { ctrlKey: true, shiftKey: true }))).toBe(true);
+  });
+
+  it('ほかのキーは止めない', () => {
+    expect(isBlockedBrowserKey(key('r'))).toBe(false);
+    expect(isBlockedBrowserKey(key('c', { ctrlKey: true }))).toBe(false);
+    expect(isBlockedBrowserKey(key('F3'))).toBe(false);
   });
 });

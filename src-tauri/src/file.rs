@@ -7,6 +7,9 @@ use std::path::Path;
 /// 開ける Markdown の上限（10 MiB）
 pub const MAX_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
+/// カスタム CSS の上限（1 MiB）
+pub const MAX_CSS_SIZE: u64 = 1024 * 1024;
+
 const MARKDOWN_EXTENSIONS: [&str; 2] = ["md", "markdown"];
 const UTF8_BOM: char = '\u{feff}';
 
@@ -61,6 +64,32 @@ pub fn read_markdown(path: &str) -> Result<MarkdownFile, AppError> {
         path: path.to_owned(),
         content,
         base_dir,
+    })
+}
+
+/// カスタム CSS を読む（F-17）。拡張子が .css で、1 MiB 以下の UTF-8 のファイルだけ
+pub fn read_css(path: &str) -> Result<String, AppError> {
+    let error = |kind| AppError::new(kind, path);
+    let file_path = Path::new(path);
+    let is_css = file_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("css"));
+    if !is_css {
+        return Err(error(ErrorKind::UnsupportedType));
+    }
+    let metadata = fs::metadata(file_path).map_err(|e| error(io_kind(&e)))?;
+    if !metadata.is_file() {
+        return Err(error(ErrorKind::NotFound));
+    }
+    if metadata.len() > MAX_CSS_SIZE {
+        return Err(error(ErrorKind::TooLarge));
+    }
+    let bytes = fs::read(file_path).map_err(|e| error(io_kind(&e)))?;
+    let text = String::from_utf8(bytes).map_err(|_| error(ErrorKind::NotUtf8))?;
+    Ok(match text.strip_prefix(UTF8_BOM) {
+        Some(rest) => rest.to_owned(),
+        None => text,
     })
 }
 
@@ -199,6 +228,37 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&file).unwrap(),
             serde_json::json!({ "path": r"C:\docs\a.md", "content": "text", "baseDir": r"C:\docs" })
+        );
+    }
+
+    #[test]
+    fn reads_custom_css_and_strips_the_bom() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write(dir.path(), "my.CSS", b"\xEF\xBB\xBFbody { color: red; }");
+        assert_eq!(read_css(&path).unwrap(), "body { color: red; }");
+    }
+
+    #[test]
+    fn custom_css_must_be_a_css_file_under_1_mib() {
+        let dir = tempfile::tempdir().unwrap();
+        let text = write(dir.path(), "a.txt", b"x");
+        assert_eq!(
+            read_css(&text).unwrap_err().kind,
+            ErrorKind::UnsupportedType
+        );
+        let missing = dir.path().join("missing.css");
+        assert_eq!(
+            read_css(&missing.to_string_lossy()).unwrap_err().kind,
+            ErrorKind::NotFound
+        );
+        let large = dir.path().join("large.css");
+        fs::File::create(&large)
+            .unwrap()
+            .set_len(MAX_CSS_SIZE + 1)
+            .unwrap();
+        assert_eq!(
+            read_css(&large.to_string_lossy()).unwrap_err().kind,
+            ErrorKind::TooLarge
         );
     }
 }

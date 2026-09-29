@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use store::{StoreName, StoreRead};
 use tauri::{Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
-use watcher::DocumentWatcher;
+use watcher::{CssWatcher, DocumentWatcher};
 
 #[tauri::command]
 fn take_pending_file(state: tauri::State<'_, PendingFile>) -> Option<String> {
@@ -29,8 +29,25 @@ fn read_markdown_file(
     path: String,
 ) -> Result<MarkdownFile, AppError> {
     let file = file::read_markdown(&path)?;
-    watcher.watch(&app, &path);
+    watcher.0.watch(&app, &path, "file-changed");
     Ok(file)
+}
+
+/// カスタム CSS を読み、保存したらすぐに反映できるよう監視する（F-17）
+#[tauri::command]
+fn read_custom_css(
+    app: tauri::AppHandle,
+    watcher: tauri::State<'_, CssWatcher>,
+    path: String,
+) -> Result<String, AppError> {
+    watcher.0.watch(&app, &path, "custom-css-changed");
+    file::read_css(&path)
+}
+
+/// カスタム CSS の設定を空にした時に、監視をやめる
+#[tauri::command]
+fn stop_custom_css(watcher: tauri::State<'_, CssWatcher>) {
+    watcher.0.stop();
 }
 
 /// 本文の画像を asset プロトコルで読めるようにする。画像でないものと無いファイルは無視する
@@ -108,11 +125,36 @@ fn open_in_editor(path: String, line: u32, command: String) -> Result<(), AppErr
         .map_err(|_| AppError::new(ErrorKind::EditorFailed, path))
 }
 
+/// リリースビルドでは、WebView2 の標準のショートカット（F5、Ctrl+R の再読み込み、F12 の開発者ツールなど）を切る。
+/// 再読み込みすると開いている文書が消えてしまう（要件定義 3.3 節）。WebView2 はこれらをページのキー処理とは別に
+/// 扱うので、keydown で止めても効かない。Ctrl+C などの編集のキーと、アプリのショートカットは影響を受けない
+#[cfg(all(windows, not(debug_assertions)))]
+fn disable_browser_accelerator_keys(app: &tauri::App) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+    use windows_core::Interface;
+
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let _ = window.with_webview(|webview| unsafe {
+        let Ok(core) = webview.controller().CoreWebView2() else {
+            return;
+        };
+        let Ok(settings) = core.Settings() else {
+            return;
+        };
+        if let Ok(settings3) = settings.cast::<ICoreWebView2Settings3>() {
+            let _ = settings3.SetAreBrowserAcceleratorKeysEnabled(false);
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
         .manage(PendingFile::default())
         .manage(DocumentWatcher::default())
+        .manage(CssWatcher::default())
         // 二重起動の時は、起動中のウィンドウを前面に出し、新しい引数のファイルを転送する。
         // single-instance は最初に登録する必要がある
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -126,15 +168,21 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // ウィンドウの位置、大きさ、最大化を次の起動で戻す（F-19）
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             if let Some(path) = pending::path_from_args(std::env::args()) {
                 app.state::<PendingFile>().set(path);
             }
+            #[cfg(all(windows, not(debug_assertions)))]
+            disable_browser_accelerator_keys(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             take_pending_file,
             read_markdown_file,
+            read_custom_css,
+            stop_custom_css,
             allow_images,
             load_store,
             save_store,
