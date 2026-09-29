@@ -16,7 +16,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint:md": "markdownlint-cli2",
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#docs/**\"",
     "check-version": "node scripts/check-version.mjs",
     "icon": "node scripts/generate-icon.mjs && tauri icon src-tauri/app-icon.png",
     "check": "npm run format:check && npm run lint && npm run check-types && npm run test && npm run build && npm run lint:md && npm run check-version"
