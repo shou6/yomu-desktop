@@ -171,6 +171,19 @@ describe('renderSafely: 例外時の表示', () => {
     assert.ok(!out.includes('<broke>'), out);
   });
 
+  it('失敗の見出しの文は、渡した訳（errorLabel）で出す。既定は英語', () => {
+    const boom = (): string => {
+      throw new Error('x');
+    };
+    const ja = renderSafely('![x](./a.png)\n', {
+      resolveImageSrc: boom,
+      errorLabel: '文書を表示できません。<b>',
+    });
+    assert.ok(ja.includes('<p>文書を表示できません。&lt;b&gt;</p>'), ja);
+    const en = renderSafely('![x](./a.png)\n', { resolveImageSrc: boom });
+    assert.ok(en.includes('<p>Yomu could not render this document.</p>'), en);
+  });
+
   it('Error でないものが投げられても表示できる', () => {
     const boom = (): string => {
       // eslint-disable-next-line no-throw-literal -- Error でないものが投げられた場合の検証
