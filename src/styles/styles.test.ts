@@ -158,6 +158,19 @@ describe('同梱フォント', () => {
   });
 });
 
+describe('index.css', () => {
+  it('フォント、組版、ハイライト、KaTeX、すべてのテーマ、画面の枠の CSS を読み込む', () => {
+    const imports = [...read('index.css').matchAll(/@import\s+'([^']+)'/g)].map((m) => m[1]);
+    for (const file of ['./fonts.css', './reader.css', './highlight.css', './app.css']) {
+      assert.ok(imports.includes(file), file + ' を読み込んでいない');
+    }
+    assert.ok(imports.includes('katex/dist/katex.min.css'), 'KaTeX の CSS を読み込んでいない');
+    for (const theme of THEMES) {
+      assert.ok(imports.includes(`./themes/${theme}.css`), theme + '.css を読み込んでいない');
+    }
+  });
+});
+
 describe('reader.css', () => {
   it('Mermaid の円グラフは最大幅を 480px に抑える', () => {
     // mermaid は円グラフを高さ 450 の固定の枠で描き、style 属性の max-width で本文の幅いっぱいまで広げる。
