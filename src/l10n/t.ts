@@ -1,7 +1,8 @@
 import ja from './ja.json';
 
 /** 設定 `language` の値 */
-export type LanguageSetting = 'auto' | 'en' | 'ja';
+export const LANGUAGE_SETTINGS = ['auto', 'en', 'ja'] as const;
+export type LanguageSetting = (typeof LANGUAGE_SETTINGS)[number];
 export type Language = 'en' | 'ja';
 export type Translator = (text: string, ...args: (string | number)[]) => string;
 

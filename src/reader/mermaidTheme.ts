@@ -1,16 +1,13 @@
 /**
- * Yomu のテーマに合わせて mermaid のテーマを選ぶ（純粋関数）。Webview 側から使う。
+ * Yomu のテーマに合わせて mermaid のテーマを選ぶ（純粋関数）。
  */
-import type { Theme } from './readerSettings';
+import type { ResolvedTheme } from './readerSettings';
 
 /** mermaid が持つテーマのうち、使うもの */
 export type MermaidTheme = 'default' | 'neutral' | 'dark';
 
-/**
- * @param theme Yomu のテーマ
- * @param vscodeIsDark VS Code のカラーテーマが暗いか（body に vscode-dark か vscode-high-contrast が付いている）
- */
-export function mermaidTheme(theme: Theme, vscodeIsDark: boolean): MermaidTheme {
+/** @param theme 適用している Yomu のテーマ（auto は解決済み） */
+export function mermaidTheme(theme: ResolvedTheme): MermaidTheme {
   switch (theme) {
     case 'sepia':
       return 'neutral';
@@ -20,8 +17,6 @@ export function mermaidTheme(theme: Theme, vscodeIsDark: boolean): MermaidTheme 
     case 'nord':
     case 'catppuccin-mocha':
       return 'dark';
-    case 'vscode':
-      return vscodeIsDark ? 'dark' : 'default';
     default:
       return 'default';
   }
@@ -43,15 +38,14 @@ export interface MermaidConfig {
 }
 
 /**
- * @param theme Yomu のテーマ
+ * @param theme 適用している Yomu のテーマ（auto は解決済み）
  * @param width 図を置く枠の幅（px）。mermaid は画面の外の仮の枠で描くので、そのままでは幅が取れず 1200px で描いてしまう
- * @param vscodeIsDark VS Code のカラーテーマが暗いか（vscode テーマの時だけ効く）
  */
-export function mermaidConfig(theme: Theme, width: number, vscodeIsDark = false): MermaidConfig {
+export function mermaidConfig(theme: ResolvedTheme, width: number): MermaidConfig {
   return {
     startOnLoad: false,
     securityLevel: 'strict',
-    theme: mermaidTheme(theme, vscodeIsDark),
+    theme: mermaidTheme(theme),
     // ガントチャートは既定の文字が 11px と小さい。本文の幅ちょうどで描き、縮めずに表示できるようにする
     gantt: {
       useWidth: width > 0 ? Math.round(width) : undefined,

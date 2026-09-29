@@ -1,6 +1,6 @@
 /**
  * Markdown を HTML に変換する（純粋関数）。
- * 生の HTML は決めたタグ（details など）だけを通し、相対パスの画像だけを Webview 用の URI に書き換える。
+ * 生の HTML は決めたタグ（details など）だけを通し、相対パスの画像だけを本文で読める URL に書き換える。
  */
 import katex from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
@@ -12,7 +12,7 @@ import { DEFAULT_FRONT_MATTER_OPTIONS, type FrontMatterOptions, frontMatter } fr
 import { htmlAllowlist } from './htmlAllowlist';
 
 export interface RenderOptions {
-  /** 相対パスの画像の src を、Webview で読める URI に変換する */
+  /** 相対パスの画像の src を、本文で読める URL に変換する */
   resolveImageSrc: (src: string) => string;
   /** front matter の見せ方。無ければ閉じた折りたたみ */
   frontMatter?: FrontMatterOptions;
@@ -97,7 +97,7 @@ export function createMarkdownIt(options: RenderOptions): MarkdownItInstance {
     const line = tokens[idx].map?.[0];
     const dataLine = line === undefined ? '' : ` data-line="${line}"`;
     if (lang.toLowerCase() === 'mermaid') {
-      // 図は Webview で mermaid.js が描く。描くまでと、描けなかった時はソースを見せる
+      // 図は本文の側で mermaid.js が描く。描くまでと、描けなかった時はソースを見せる
       const source = md.utils.escapeHtml(tokens[idx].content);
       return `<div class="yomu-mermaid"${dataLine}><pre class="yomu-mermaid-source">${source}</pre></div>\n`;
     }
@@ -141,7 +141,7 @@ export function render(markdown: string, options: RenderOptions): string {
 
 /**
  * render と同じだが、変換中に例外が出ても投げず、エラーの内容を本文として返す。
- * Webview が白紙になるのを避けるため、Provider はこちらを使う。
+ * 本文が白紙になるのを避けるため、画面の側はこちらを使う。
  */
 export function renderSafely(markdown: string, options: RenderOptions): string {
   try {

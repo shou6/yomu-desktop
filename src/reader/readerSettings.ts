@@ -1,7 +1,8 @@
 /**
- * 設定（yomu.*）の値を検査し、Webview に渡す CSS 変数とテーマ名に変換する（純粋関数）。
- * 設定の読み取り（vscode.workspace.getConfiguration）は Provider が行い、ここには生の値だけを渡す。
+ * 設定の値を検査し、本文に渡す CSS 変数とテーマ名に変換する（純粋関数）。
+ * 設定ファイルの読み書きは画面の側で行い、ここには生の値だけを渡す。
  */
+import { LANGUAGE_SETTINGS, type LanguageSetting } from '../l10n/t';
 import { FRONT_MATTER_DISPLAYS, type FrontMatterDisplay } from './frontMatter';
 
 export const THEMES = [
@@ -15,9 +16,12 @@ export const THEMES = [
   'nord',
   'catppuccin-latte',
   'catppuccin-mocha',
-  'vscode',
 ] as const;
-export type Theme = (typeof THEMES)[number];
+/** 実際に適用するテーマ */
+export type ResolvedTheme = (typeof THEMES)[number];
+/** 設定で選べるテーマ。auto は OS の明暗に合わせる */
+export type Theme = 'auto' | ResolvedTheme;
+const THEME_SETTINGS: readonly Theme[] = ['auto', ...THEMES];
 
 export const ALIGNS = ['left', 'center', 'right'] as const;
 export type Align = (typeof ALIGNS)[number];
@@ -44,18 +48,22 @@ export interface ReaderSettings {
   foldLines: number;
   /** ファイルの先頭の front matter の見せ方 */
   frontMatter: FrontMatterDisplay;
+  /** エディタで開くコマンド。{file} と {line} を置き換える。空なら OS の標準のテキストエディタ */
+  editorCommand: string;
+  /** 画面の言語。auto は OS の言語に合わせる */
+  language: LanguageSetting;
 }
 
 /** 設定から読んだままの値。型は信用しない */
 export type RawSettings = Partial<Record<keyof ReaderSettings, unknown>>;
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
-  theme: 'paper',
+  theme: 'auto',
   maxWidth: 820,
   align: 'center',
   padding: 32,
   // 欧文フォントを先に並べ、欧文フォントに無い和文は後ろの和文フォントで描く（和欧の出し分け）。
-  // 和文は同梱フォント（media/fonts.css で登録）なので、どの OS でも同じ見た目になる。
+  // 和文は同梱フォント（src/styles/fonts.css で登録）なので、どの OS でも同じ見た目になる。
   // 既定値（幅 820、16px、Noto Sans JP）は開発者が設定で比べて決めた（実装計画のフェーズ 9.5）
   fontFamily:
     "'Segoe UI', 'Helvetica Neue', Helvetica, Arial, 'Noto Sans JP', 'BIZ UDPGothic', sans-serif",
@@ -66,6 +74,8 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   focusMode: false,
   foldLines: 20,
   frontMatter: 'collapsed',
+  editorCommand: '',
+  language: 'auto',
 };
 
 /**
@@ -73,10 +83,10 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
  * 土台は半角と全角がちょうど 1:2 の和文等幅フォント（Windows: BIZ UDGothic / MS Gothic、macOS: Osaka-Mono、
  * Linux: Noto Sans Mono CJK JP）。和文を含むテキストの図が揃う。
  * 罫線（─ │ ┌）や三角（▶ ▼）は東アジアの文字幅が曖昧な文字で、和文等幅フォントは全角の幅で描くので、
- * その範囲だけ先頭の Yomu Symbols（欧文の等幅フォントを半角の幅に縮めたもの。media/fonts.css）で描く
+ * その範囲だけ先頭の Yomu Symbols（欧文の等幅フォントを半角の幅に縮めたもの。src/styles/fonts.css）で描く
  */
 const CODE_FONT_FALLBACK =
-  "'Yomu Symbols Cascadia', 'Yomu Symbols Consolas', 'Yomu Symbols Menlo', 'Yomu Symbols DejaVu', 'Yomu Symbols Liberation', 'BIZ UDGothic', 'Osaka-Mono', 'Noto Sans Mono CJK JP', 'MS Gothic', var(--vscode-editor-font-family, monospace), monospace";
+  "'Yomu Symbols Cascadia', 'Yomu Symbols Consolas', 'Yomu Symbols Menlo', 'Yomu Symbols DejaVu', 'Yomu Symbols Liberation', 'BIZ UDGothic', 'Osaka-Mono', 'Noto Sans Mono CJK JP', 'MS Gothic', monospace";
 
 function oneOf<T extends string>(value: unknown, choices: readonly T[], fallback: T): T {
   return typeof value === 'string' && (choices as readonly string[]).includes(value)
@@ -101,7 +111,7 @@ function cssValue(value: unknown, fallback: string): string {
 
 export function normalizeSettings(raw: RawSettings): ReaderSettings {
   return {
-    theme: oneOf(raw.theme, THEMES, DEFAULT_SETTINGS.theme),
+    theme: oneOf(raw.theme, THEME_SETTINGS, DEFAULT_SETTINGS.theme),
     maxWidth: numberIn(raw.maxWidth, 0, 10000, DEFAULT_SETTINGS.maxWidth),
     align: oneOf(raw.align, ALIGNS, DEFAULT_SETTINGS.align),
     padding: numberIn(raw.padding, 0, 1000, DEFAULT_SETTINGS.padding),
@@ -116,10 +126,20 @@ export function normalizeSettings(raw: RawSettings): ReaderSettings {
         ? numberIn(raw.foldLines, 0, 10000, DEFAULT_SETTINGS.foldLines)
         : DEFAULT_SETTINGS.foldLines,
     frontMatter: oneOf(raw.frontMatter, FRONT_MATTER_DISPLAYS, DEFAULT_SETTINGS.frontMatter),
+    editorCommand: typeof raw.editorCommand === 'string' ? raw.editorCommand.trim() : '',
+    language: oneOf(raw.language, LANGUAGE_SETTINGS, DEFAULT_SETTINGS.language),
   };
 }
 
-/** Webview の :root に設定する CSS 変数 */
+/** 適用するテーマ。auto は OS がダークなら dark、ライトなら paper */
+export function resolveTheme(theme: Theme, osIsDark: boolean): ResolvedTheme {
+  if (theme !== 'auto') {
+    return theme;
+  }
+  return osIsDark ? 'dark' : 'paper';
+}
+
+/** 本文の :root に設定する CSS 変数 */
 export function cssVariables(settings: ReaderSettings): Record<string, string> {
   return {
     '--yomu-max-width': settings.maxWidth === 0 ? 'none' : `${settings.maxWidth}px`,
