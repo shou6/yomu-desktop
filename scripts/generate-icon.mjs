@@ -1,0 +1,188 @@
+// アプリのアイコンの元画像（src-tauri/app-icon.png）を生成する。
+// 使い方: npm run icon（この後に tauri icon で各 OS 向けのサイズと形式を作る）
+//
+// 画像ライブラリに依存せず、Node 標準の zlib だけで PNG を書き出す。
+//
+// 図案: VS Code 拡張機能 Yomu のアイコン（resources/icon.png）と同じ。紺の角丸の背景に、開いた本。
+// 左右のページに本文を表す線を置く。色は既定のテーマ paper の見出しの色に合わせている。
+// tauri icon は 1024px 以上の元画像を勧めるため、Yomu の 256px から 1024px に上げている。
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import zlib from 'node:zlib';
+
+const SIZE = 1024;
+/** 縁をなめらかにするため、1 画素を SS x SS に分けて塗り、平均を取る */
+const SS = 4;
+/** 図形の座標は 1024 x 1024 の下書きの値で書き、SIZE に縮める */
+const UNIT = SIZE / 1024;
+
+/** 背景。上が明るく下が暗い紺のグラデーション（paper テーマの h2 と h1 の色） */
+const BACKGROUND_TOP = [0x2c, 0x5f, 0x8a];
+const BACKGROUND_BOTTOM = [0x1a, 0x35, 0x50];
+/** 表紙。ページの下から少しはみ出す */
+const COVER = [0x5b, 0x9b, 0xd5];
+/** ページ（paper テーマの紙の色に近い生成り） */
+const PAGE = [0xfb, 0xf8, 0xf1];
+/** 背に近い側のページの影 */
+const PAGE_SHADE = [0xe3, 0xdc, 0xcc];
+/** 本文の線 */
+const TEXT_LINE = [0x8a, 0xa4, 0xbf];
+/** 影 */
+const SHADOW = [0x0a, 0x16, 0x24];
+
+/** 角丸の四角までの符号付き距離（内側が負）。座標は下書きの単位 */
+function roundedRectDistance(x, y, [left, top, right, bottom], radius) {
+  const cx = (left + right) / 2;
+  const cy = (top + bottom) / 2;
+  const qx = Math.abs(x - cx) - ((right - left) / 2 - radius);
+  const qy = Math.abs(y - cy) - ((bottom - top) / 2 - radius);
+  const outside = Math.hypot(Math.max(qx, 0), Math.max(qy, 0));
+  return outside + Math.min(Math.max(qx, qy), 0) - radius;
+}
+
+/** 影。形の縁を中心に blur の幅でぼかす（ガウスぼかしの近似） */
+function shadowAlpha(distance, blur, opacity) {
+  const t = Math.min(Math.max(0.5 - distance / (2 * blur), 0), 1);
+  return opacity * t * t * (3 - 2 * t);
+}
+
+function mix(from, to, t) {
+  return from.map((value, i) => value + (to[i] - value) * t);
+}
+
+/**
+ * 下書きの座標 (x, y) の色を、奥の層から順に重ねて求める。
+ * 戻り値は [r, g, b, a]（a は 0〜1）。
+ */
+function colorAt(x, y) {
+  let color = [0, 0, 0];
+  let alpha = 0;
+  const paint = (rgb, a = 1) => {
+    const outAlpha = a + alpha * (1 - a);
+    if (outAlpha > 0) {
+      color = color.map((value, i) => (rgb[i] * a + value * alpha * (1 - a)) / outAlpha);
+    }
+    alpha = outAlpha;
+  };
+
+  // 背景
+  const background = roundedRectDistance(x, y, [0, 0, 1024, 1024], 224);
+  if (background > 0) {
+    return [0, 0, 0, 0];
+  }
+  paint(mix(BACKGROUND_TOP, BACKGROUND_BOTTOM, y / 1024));
+
+  // 本全体の影。表紙の縁から下へ落とす
+  const coverBox = [150, 262, 874, 792];
+  paint(SHADOW, shadowAlpha(roundedRectDistance(x, y - 28, coverBox, 56), 48, 0.45));
+
+  // 表紙
+  if (roundedRectDistance(x, y, coverBox, 56) <= 0) {
+    paint(COVER);
+  }
+
+  // ページ。左右 2 枚。背（中央）に近いほど少し暗くして、開いた本の丸みを出す
+  const pages = [
+    [188, 296, 500, 756],
+    [524, 296, 836, 756],
+  ];
+  for (const box of pages) {
+    if (roundedRectDistance(x, y, box, 28) <= 0) {
+      const spine = 512;
+      const toward = 1 - Math.min(Math.abs(x - spine) / 120, 1);
+      paint(mix(PAGE, PAGE_SHADE, toward * toward));
+    }
+  }
+
+  // 本文の線。各ページ 3 本。1 本目は見出しのつもりで少し短く太い
+  const lines = [
+    // [left, top, right, bottom]
+    [244, 372, 428, 408],
+    [244, 462, 452, 486],
+    [244, 540, 452, 564],
+    [572, 372, 756, 408],
+    [572, 462, 780, 486],
+    [572, 540, 780, 564],
+  ];
+  for (const box of lines) {
+    if (roundedRectDistance(x, y, box, 12) <= 0) {
+      paint(TEXT_LINE);
+    }
+  }
+
+  return [...color, alpha];
+}
+
+function renderPixels() {
+  const raw = Buffer.alloc((SIZE * 4 + 1) * SIZE);
+  for (let py = 0; py < SIZE; py++) {
+    const row = py * (SIZE * 4 + 1);
+    raw[row] = 0; // フィルタなし
+    for (let px = 0; px < SIZE; px++) {
+      // 透明度を掛けた値で平均し、縁が暗くにじまないようにする
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const [cr, cg, cb, ca] = colorAt(
+            (px + (sx + 0.5) / SS) / UNIT,
+            (py + (sy + 0.5) / SS) / UNIT
+          );
+          r += cr * ca;
+          g += cg * ca;
+          b += cb * ca;
+          a += ca;
+        }
+      }
+      const offset = row + 1 + px * 4;
+      raw[offset] = a ? Math.round(r / a) : 0;
+      raw[offset + 1] = a ? Math.round(g / a) : 0;
+      raw[offset + 2] = a ? Math.round(b / a) : 0;
+      raw[offset + 3] = Math.round((a / (SS * SS)) * 255);
+    }
+  }
+  return raw;
+}
+
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) {
+    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  }
+  return c >>> 0;
+});
+
+function crc32(buffer) {
+  let c = 0xffffffff;
+  for (const byte of buffer) {
+    c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
+  }
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function chunk(type, data) {
+  const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([length, body, crc]);
+}
+
+const header = Buffer.alloc(13);
+header.writeUInt32BE(SIZE, 0);
+header.writeUInt32BE(SIZE, 4);
+header[8] = 8; // ビット深度
+header[9] = 6; // RGBA
+const png = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  chunk('IHDR', header),
+  chunk('IDAT', zlib.deflateSync(renderPixels(), { level: 9 })),
+  chunk('IEND', Buffer.alloc(0)),
+]);
+
+const out = fileURLToPath(new URL('../src-tauri/app-icon.png', import.meta.url));
+writeFileSync(out, png);
+console.log('wrote ' + out + ' (' + SIZE + 'x' + SIZE + ', ' + png.length + ' bytes)');
