@@ -5001,6 +5001,8 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-window-state",
  "tempfile",
+ "webview2-com",
+ "windows-core",
 ]
 
 [[package]]

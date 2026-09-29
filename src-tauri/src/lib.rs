@@ -125,6 +125,30 @@ fn open_in_editor(path: String, line: u32, command: String) -> Result<(), AppErr
         .map_err(|_| AppError::new(ErrorKind::EditorFailed, path))
 }
 
+/// リリースビルドでは、WebView2 の標準のショートカット（F5、Ctrl+R の再読み込み、F12 の開発者ツールなど）を切る。
+/// 再読み込みすると開いている文書が消えてしまう（要件定義 3.3 節）。WebView2 はこれらをページのキー処理とは別に
+/// 扱うので、keydown で止めても効かない。Ctrl+C などの編集のキーと、アプリのショートカットは影響を受けない
+#[cfg(all(windows, not(debug_assertions)))]
+fn disable_browser_accelerator_keys(app: &tauri::App) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+    use windows_core::Interface;
+
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let _ = window.with_webview(|webview| unsafe {
+        let Ok(core) = webview.controller().CoreWebView2() else {
+            return;
+        };
+        let Ok(settings) = core.Settings() else {
+            return;
+        };
+        if let Ok(settings3) = settings.cast::<ICoreWebView2Settings3>() {
+            let _ = settings3.SetAreBrowserAcceleratorKeysEnabled(false);
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -150,6 +174,8 @@ pub fn run() {
             if let Some(path) = pending::path_from_args(std::env::args()) {
                 app.state::<PendingFile>().set(path);
             }
+            #[cfg(all(windows, not(debug_assertions)))]
+            disable_browser_accelerator_keys(app);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
