@@ -115,6 +115,7 @@ select {
 
 .scroller {
   position: relative;
+  outline: none;
   flex: 1;
   min-width: 0;
   overflow: auto;

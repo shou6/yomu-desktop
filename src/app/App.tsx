@@ -209,6 +209,10 @@ function App() {
     const target = scrollTarget.current;
     scrollTarget.current = null;
     if (scroller !== null && target !== null) {
+      // 開いた直後から矢印キーや PageDown で本文を送れるよう、本文の領域に焦点を移す
+      if (!scroller.contains(document.activeElement)) {
+        scroller.focus({ preventScroll: true });
+      }
       if (target.kind === 'top') {
         scroller.scrollTop = 0;
       } else if (target.kind === 'position') {
@@ -558,7 +562,7 @@ function App() {
             />
           </>
         )}
-        <div className="scroller" ref={scrollerRef} onScroll={onScroll}>
+        <div className="scroller" ref={scrollerRef} tabIndex={-1} onScroll={onScroll}>
           {error && (
             <div className="message-bar error" role="alert">
               <span>{error}</span>
