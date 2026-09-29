@@ -68,5 +68,6 @@
   "Choose…": "選ぶ…",
   "Loaded after the theme. The theme colors are the --yomu-* CSS variables.": "テーマの後に読み込みます。テーマの色は --yomu-* の CSS 変数で持っています。",
   "Focus Mode": "集中モード",
-  "Print": "印刷"
+  "Print": "印刷",
+  "Yomu could not render this document.": "この文書を表示できませんでした。"
 }

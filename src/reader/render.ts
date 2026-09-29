@@ -21,6 +21,8 @@ export interface RenderOptions {
   resolveImageSrc: (src: string) => string;
   /** front matter の見せ方。無ければ閉じた折りたたみ */
   frontMatter?: FrontMatterOptions;
+  /** 変換に失敗した時の見出しの文（翻訳済み）。renderSafely だけが使う */
+  errorLabel?: string;
 }
 
 /** 元の行番号を付ける、一番外側のブロックの要素 */
@@ -155,7 +157,9 @@ export function renderSafely(markdown: string, options: RenderOptions): string {
     const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
     const escape = new MarkdownIt().utils.escapeHtml;
     return (
-      '<div class="yomu-error"><p>Yomu could not render this document.</p><pre>' +
+      '<div class="yomu-error"><p>' +
+      escape(options.errorLabel ?? 'Yomu could not render this document.') +
+      '</p><pre>' +
       escape(message) +
       '</pre></div>'
     );

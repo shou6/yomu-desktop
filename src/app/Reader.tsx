@@ -28,6 +28,7 @@ function Reader({ file, settings, theme, onShown, onLinkClick }: ReaderProps) {
   const frontMatterDisplay = settings.frontMatter;
   // 言語を切り替えたら描き直すよう、訳した文言を依存に入れる
   const frontMatterLabel = t('Front matter');
+  const errorLabel = t('Yomu could not render this document.');
   const { html, imagePaths } = useMemo(() => {
     const paths: string[] = [];
     const rendered = renderSafely(file.content, {
@@ -40,9 +41,10 @@ function Reader({ file, settings, theme, onShown, onLinkClick }: ReaderProps) {
         return fileUrl(path);
       },
       frontMatter: { display: frontMatterDisplay, label: frontMatterLabel },
+      errorLabel,
     });
     return { html: rendered, imagePaths: [...new Set(paths)] };
-  }, [file.content, file.baseDir, frontMatterDisplay, frontMatterLabel]);
+  }, [file.content, file.baseDir, frontMatterDisplay, frontMatterLabel, errorLabel]);
 
   // 許可を待っている間は、前の本文を出したままにする。同じ HTML でも差し込み直したことが分かるよう、包んで持つ
   const [shown, setShown] = useState<{ html: string } | null>(null);
