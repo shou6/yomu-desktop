@@ -226,16 +226,14 @@ mod tests {
     #[test]
     fn finds_batch_files_on_the_path_with_pathext() {
         let dir = tempfile::tempdir().unwrap();
-        let cmd = dir.path().join("code.cmd");
+        // ファイル名は PATHEXT と同じ綴りにする。Linux のファイル名は大文字と小文字を区別するので、
+        // code.cmd を .CMD で探すと見つからない（Windows と macOS では見つかる）
+        let cmd = dir.path().join("code.CMD");
         std::fs::write(&cmd, b"@echo off").unwrap();
         let path_var = std::env::join_paths([dir.path()]).unwrap();
-        // Windows のファイル名は大文字と小文字を区別しないので、PATHEXT の綴り（.CMD）で見つかってもよい
-        let found = find_in_path("code", &path_var, ".COM;.EXE;.BAT;.CMD").unwrap();
-        assert!(
-            found
-                .to_string_lossy()
-                .eq_ignore_ascii_case(&cmd.to_string_lossy()),
-            "{found:?}"
+        assert_eq!(
+            find_in_path("code", &path_var, ".COM;.EXE;.BAT;.CMD"),
+            Some(cmd)
         );
         assert_eq!(find_in_path("missing", &path_var, ".EXE;.CMD"), None);
     }
