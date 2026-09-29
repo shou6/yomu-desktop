@@ -30,6 +30,7 @@ vi.mock('../lib/ipc', async (importOriginal) => {
     setWindowTitle: vi.fn(async () => undefined),
     isMac: vi.fn(() => false),
     readCustomCss: vi.fn(),
+    stopCustomCss: vi.fn(async () => undefined),
     onCustomCssChanged: vi.fn(async () => () => {}),
     chooseCssFile: vi.fn(),
   };

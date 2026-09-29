@@ -1,0 +1,110 @@
+/*
+ * 印刷用の CSS（F-13）。window.print() で OS の印刷ダイアログを開いた時に効く。
+ * テーマは印刷の間だけ paper にする（App.tsx の beforeprint）。幅と文字の大きさの設定は引き継ぐ。
+ */
+
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+
+  body {
+    min-height: auto;
+    background: #ffffff;
+    /* 背景色（コードブロックや引用）も印刷する */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 幅と位置の設定は引き継ぎ、上下の余白だけを紙の余白（@page）に任せる */
+  #content {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  /* コードは横スクロールできないので折り返す */
+  pre,
+  pre code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: visible;
+  }
+
+  /* 見出しの直後で改ページしない */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid;
+  }
+
+  /* 表・図・コード・引用・画像の途中で改ページしない */
+  pre,
+  table,
+  blockquote,
+  img,
+  .yomu-code,
+  .yomu-mermaid {
+    break-inside: avoid;
+  }
+
+  /* 紙ではリンクを押せないので、外部リンクの URL を併記する */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: var(--yomu-h5);
+    overflow-wrap: anywhere;
+  }
+
+  /* 画面の枠と、画面向けの操作は印刷しない */
+  .toolbar,
+  .side-panel,
+  .side-panel-resizer,
+  .message-bar,
+  .search-bar,
+  .drop-overlay,
+  .dialog-backdrop,
+  .yomu-fold-button,
+  .yomu-zoom {
+    display: none !important;
+  }
+
+  /* 本文の領域のスクロールを外し、全文を紙に流す */
+  html,
+  body,
+  #root,
+  .app,
+  .main,
+  .reader-area,
+  .scroller {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* 畳んだコードは開いて印刷する */
+  pre.yomu-foldable.yomu-folded,
+  .yomu-foldable.yomu-folded > pre {
+    max-height: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  /* 集中モードで薄くしたブロックも、紙では濃く出す */
+  .yomu-focus-mode #content > *,
+  .yomu-focus-mode #content > ul > li,
+  .yomu-focus-mode #content > ol > li {
+    opacity: 1 !important;
+  }
+
+  /* 検索の強調は印刷しない */
+  mark.yomu-search-match {
+    background: none;
+  }
+
+  tbody tr:hover td {
+    background-color: transparent;
+  }
+}

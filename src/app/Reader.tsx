@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { applyFolding, resetFolding } from '../content/fold';
 import { renderMermaid, resetMermaid } from '../content/mermaid';
+import { openZoom, zoomTarget } from '../content/zoom';
 import { t } from '../l10n/t';
 import { allowImages, fileUrl, type MarkdownFile } from '../lib/ipc';
 import { resolveImagePath } from '../reader/imagePath';
@@ -69,6 +71,30 @@ function Reader({ file, settings, theme, onShown, onLinkClick }: ReaderProps) {
   useEffect(() => {
     onShownRef.current = onShown;
   });
+
+  // 長いコードを畳む（F-16）。スクロールの位置は畳んだ後の高さで合わせるので、先に畳む。
+  // 保存で読み直した時は開いたコードを開いたままにし、別の文書を開いたら忘れる
+  const foldLines = settings.foldLines;
+  // 言語を切り替えたら付け直すよう、訳した文言を依存に入れる
+  const expandLabel = t('Show all {0} lines');
+  const collapseLabel = t('Collapse');
+  const foldLabels = useMemo(
+    () => ({ expand: expandLabel, collapse: collapseLabel }),
+    [expandLabel, collapseLabel]
+  );
+  const foldedPath = useRef<string | null>(null);
+  useEffect(() => {
+    const root = contentRef.current;
+    if (root === null || shown === null) {
+      return;
+    }
+    if (foldedPath.current !== file.path) {
+      resetFolding();
+      foldedPath.current = file.path;
+    }
+    applyFolding(root, { foldLines, labels: foldLabels });
+  }, [shown, foldLines, foldLabels, file.path]);
+
   useEffect(() => {
     if (shown !== null) {
       onShownRef.current?.();
@@ -91,6 +117,12 @@ function Reader({ file, settings, theme, onShown, onLinkClick }: ReaderProps) {
       id="content"
       ref={contentRef}
       onClick={(event) => {
+        // 画像と図はクリックでズームする（F-15）。リンクの中の画像はリンクを優先する
+        const zoom = zoomTarget(event.target as Element);
+        if (zoom !== undefined) {
+          openZoom(zoom, t('Close'));
+          return;
+        }
         const anchor = (event.target as Element).closest('a[href]');
         if (anchor === null) {
           return;

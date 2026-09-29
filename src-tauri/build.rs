@@ -2,6 +2,8 @@
 const COMMANDS: &[&str] = &[
     "take_pending_file",
     "read_markdown_file",
+    "read_custom_css",
+    "stop_custom_css",
     "allow_images",
     "load_store",
     "save_store",

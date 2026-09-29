@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-custom-css"
+description = "Enables the stop_custom_css command without any pre-configured scope."
+commands.allow = ["stop_custom_css"]
+
+[[permission]]
+identifier = "deny-stop-custom-css"
+description = "Denies the stop_custom_css command without any pre-configured scope."
+commands.deny = ["stop_custom_css"]

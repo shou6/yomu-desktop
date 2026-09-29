@@ -489,3 +489,85 @@ select {
   color: var(--yomu-code-label-fg);
   font-size: 12px;
 }
+
+/* 本文の領域。検索バーを右上に重ねる */
+.reader-area {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ページ内検索（F-18） */
+.search-bar {
+  position: absolute;
+  top: 8px;
+  right: 24px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 8px;
+  background: var(--yomu-bg);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 18%);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.search-bar input {
+  width: 220px;
+  padding: 4px 6px;
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 4px;
+  background: var(--yomu-pre-bg);
+}
+
+.search-count {
+  min-width: 4.5em;
+  color: var(--yomu-code-label-fg);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 一致の強調。CSS Custom Highlight API がある WebView は ::highlight、無い WebView は mark で包む */
+::highlight(yomu-search-match),
+mark.yomu-search-match {
+  background-color: rgb(255 214 0 / 45%);
+  color: inherit;
+}
+
+::highlight(yomu-search-current),
+mark.yomu-search-match.yomu-search-current {
+  background-color: rgb(255 140 0 / 75%);
+  color: inherit;
+}
+
+mark.yomu-search-match {
+  padding: 0;
+  border-radius: 2px;
+}
+
+.settings-check input {
+  justify-self: start;
+}
+
+.settings-file {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.settings-file input {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-file button {
+  padding: 4px 10px;
+  border: 1px solid var(--yomu-pre-border);
+  border-radius: 4px;
+  background: var(--yomu-pre-bg);
+  cursor: pointer;
+}

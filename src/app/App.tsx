@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { setFocusMode, updateFocus } from '../content/focus';
+import { clearSearch, highlightMatches, revealMatch, type SearchMatch } from '../content/search';
 import { resolveLanguage, setLanguage, t } from '../l10n/t';
 import {
+  chooseCssFile,
   isMac,
   loadStore,
+  onCustomCssChanged,
   onDragDrop,
   onFileChanged,
   onOpenFile,
@@ -11,9 +15,11 @@ import {
   openPath,
   openUrl,
   pathsExist,
+  readCustomCss,
   readMarkdownFile,
   saveStore,
   setWindowTitle,
+  stopCustomCss,
   takePendingFile,
   type MarkdownFile,
   type Unlisten,
@@ -39,6 +45,7 @@ import {
   updateRecord,
   type ReadingRecords,
 } from '../reader/reading';
+import { cycleIndex } from '../reader/search';
 import { settingsFromStore, settingsToStore } from '../reader/settingsStore';
 import { readingLine } from '../reader/sourceLine';
 import { applySettings } from './applySettings';
@@ -48,8 +55,9 @@ import History from './History';
 import { Icon } from './icons';
 import Outline from './Outline';
 import Reader from './Reader';
+import SearchBar from './SearchBar';
 import SettingsDialog from './SettingsDialog';
-import { shortcutAction } from './shortcuts';
+import { isBlockedBrowserKey, shortcutAction } from './shortcuts';
 import Toolbar from './Toolbar';
 import {
   DEFAULT_UI_STATE,
@@ -80,6 +88,8 @@ interface OpenOptions {
 const READING_LINE = 0.2;
 /** 読書の記録を保存するまで待つ時間 */
 const SAVE_DELAY = 800;
+/** 検索の一致へ移る時に、一致を置く高さ。画面の上から 3 割 */
+const MATCH_POSITION = 0.3;
 
 function fileName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
@@ -100,6 +110,11 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [headingIndex, setHeadingIndex] = useState(-1);
   const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [matchCount, setMatchCount] = useState(0);
+  const [matchIndex, setMatchIndex] = useState(-1);
+  const matchesRef = useRef<SearchMatch[]>([]);
 
   const osIsDark = useOsDark();
   const theme = resolveTheme(settings.theme, osIsDark);
@@ -111,11 +126,17 @@ function App() {
   const fileRef = useRef(file);
   const navRef = useRef(nav);
   const recordsRef = useRef(records);
+  const settingsRef = useRef(settings);
+  const searchRef = useRef({ open: searchOpen, query, index: matchIndex });
   useEffect(() => {
     fileRef.current = file;
     navRef.current = nav;
     recordsRef.current = records;
+    settingsRef.current = settings;
+    searchRef.current = { open: searchOpen, query, index: matchIndex };
   });
+
+  const contentElement = () => document.getElementById('content');
 
   useEffect(() => {
     applySettings(settings, osIsDark);
@@ -202,6 +223,55 @@ function App() {
     setRecords((records) =>
       updateRecord(records, current.path, fileName(current.path), next, Date.now())
     );
+    const content = contentElement();
+    if (content !== null) {
+      updateFocus(scroller, content);
+    }
+  }, []);
+
+  /** index 番目の一致へ移る。閉じた details や畳んだコードの中なら開いて見せる（F-18） */
+  const showMatch = useCallback((index: number) => {
+    setMatchIndex(index);
+    const scroller = scrollerRef.current;
+    const rect = revealMatch(matchesRef.current, index);
+    if (scroller !== null && rect !== undefined) {
+      scroller.scrollTop +=
+        rect.top - scroller.getBoundingClientRect().top - scroller.clientHeight * MATCH_POSITION;
+    }
+  }, []);
+
+  /** 本文を検索し直す。keepIndex なら、なるべく今の一致の番号を保つ（保存で読み直した時） */
+  const runSearch = useCallback(
+    (text: string, keepIndex = false) => {
+      const content = contentElement();
+      if (content === null) {
+        return;
+      }
+      const matches = highlightMatches(content, text);
+      matchesRef.current = matches;
+      setMatchCount(matches.length);
+      if (matches.length === 0) {
+        setMatchIndex(-1);
+        return;
+      }
+      const index = keepIndex
+        ? Math.min(Math.max(searchRef.current.index, 0), matches.length - 1)
+        : 0;
+      showMatch(index);
+    },
+    [showMatch]
+  );
+
+  const closeSearch = useCallback(() => {
+    const content = contentElement();
+    if (content !== null) {
+      clearSearch(content);
+    }
+    matchesRef.current = [];
+    setSearchOpen(false);
+    setMatchCount(0);
+    setMatchIndex(-1);
+    scrollerRef.current?.focus({ preventScroll: true });
   }, []);
 
   const onShown = useCallback(() => {
@@ -227,8 +297,17 @@ function App() {
         scrollToId(target.id);
       }
     }
+    const content = contentElement();
+    if (scroller !== null && content !== null) {
+      setFocusMode(scroller, content, settingsRef.current.focusMode);
+    }
+    // 保存で読み直した後も、同じ語で検索し直す（F-18）
+    const search = searchRef.current;
+    if (search.open && search.query.trim() !== '') {
+      runSearch(search.query, target === null);
+    }
     updateReading();
-  }, [scrollToId, updateReading]);
+  }, [scrollToId, updateReading, runSearch]);
 
   const back = useCallback(() => {
     const next = goBack(navRef.current, scrollerRef.current?.scrollTop ?? 0);
@@ -428,9 +507,123 @@ function App() {
     };
   }, [historyVisible, showRecent, recordPaths]);
 
+  const toggleFocus = useCallback(() => {
+    setSettings((current) => ({ ...current, focusMode: !current.focusMode }));
+  }, []);
+
+  // 集中モード（F-14）。設定を変えたらすぐに反映する
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const content = contentElement();
+    if (scroller !== null && content !== null) {
+      setFocusMode(scroller, content, settings.focusMode);
+    } else if (!settings.focusMode) {
+      document.body.classList.remove('yomu-focus-mode');
+    }
+  }, [settings.focusMode, file]);
+
+  const openSearch = useCallback(() => {
+    if (fileRef.current === null) {
+      return;
+    }
+    if (searchRef.current.open) {
+      document.querySelector<HTMLInputElement>('.search-bar input')?.select();
+    }
+    setSearchOpen(true);
+  }, []);
+
+  const onQuery = useCallback(
+    (text: string) => {
+      setQuery(text);
+      runSearch(text);
+    },
+    [runSearch]
+  );
+
+  // 印刷（F-13）。テーマに関わらず白地の paper で印刷し、終わったら元のテーマに戻す
+  useEffect(() => {
+    const beforePrint = () => {
+      document.body.dataset.theme = 'paper';
+    };
+    const afterPrint = () => applySettings(settingsRef.current, osIsDark);
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', beforePrint);
+      window.removeEventListener('afterprint', afterPrint);
+    };
+  }, [osIsDark]);
+
+  // カスタム CSS（F-17）。テーマの後に読み込み、保存したらすぐに反映する。読めない時は一度だけ知らせる
+  const cssNotified = useRef<string | null>(null);
+  const loadCustomCss = useCallback((path: string) => {
+    readCustomCss(path)
+      .then((css) => {
+        let style = document.getElementById('yomu-custom-css');
+        if (style === null) {
+          style = document.createElement('style');
+          style.id = 'yomu-custom-css';
+          document.head.appendChild(style);
+        }
+        style.textContent = css;
+        cssNotified.current = null;
+      })
+      .catch(() => {
+        document.getElementById('yomu-custom-css')?.remove();
+        if (cssNotified.current !== path) {
+          cssNotified.current = path;
+          setNotice(
+            t('Could not load the custom CSS: {0}. Showing the theme as is.', fileName(path))
+          );
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!storesLoaded) {
+      return;
+    }
+    const path = settings.customCss;
+    if (path === '') {
+      document.getElementById('yomu-custom-css')?.remove();
+      void stopCustomCss();
+      return;
+    }
+    loadCustomCss(path);
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    void onCustomCssChanged((change) => {
+      if (change.path === path) {
+        loadCustomCss(path);
+      }
+    }).then((stop) => {
+      if (disposed) {
+        stop();
+      } else {
+        unlisten = stop;
+      }
+    });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [settings.customCss, storesLoaded, loadCustomCss]);
+
+  const chooseCustomCss = useCallback(async () => {
+    const path = await chooseCssFile({ title: t('Choose a CSS File'), filterName: t('CSS') });
+    if (path !== null) {
+      setSettings((current) => ({ ...current, customCss: path }));
+    }
+  }, []);
+
   // ショートカット（要件定義 3.3 節）とマウスの戻る・進むボタン
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // リリースビルドでは、文書が消える再読み込みと開発者ツールのキーを止める
+      if (import.meta.env.PROD && isBlockedBrowserKey(event)) {
+        event.preventDefault();
+        return;
+      }
       const action = shortcutAction(event, mac);
       if (action === undefined) {
         return;
@@ -446,6 +639,14 @@ function App() {
         setUi((current) => ({ ...current, sidePanelOpen: !current.sidePanelOpen }));
       } else if (action === 'openInEditor') {
         editCurrent();
+      } else if (action === 'print') {
+        if (fileRef.current !== null) {
+          window.print();
+        }
+      } else if (action === 'search') {
+        openSearch();
+      } else if (action === 'toggleFocus') {
+        toggleFocus();
       } else {
         setSettingsOpen(true);
       }
@@ -463,7 +664,7 @@ function App() {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, [mac, openWithDialog, back, forward, editCurrent]);
+  }, [mac, openWithDialog, back, forward, editCurrent, openSearch, toggleFocus]);
 
   // スクロールのたびに計算しすぎないよう、描画の区切りで 1 回にまとめる
   const frame = useRef<number | null>(null);
@@ -513,6 +714,10 @@ function App() {
         onOpenInEditor={editCurrent}
         onOpenFile={() => void openWithDialog()}
         onSettings={() => setSettingsOpen(true)}
+        focusMode={settings.focusMode}
+        onSearch={openSearch}
+        onToggleFocus={toggleFocus}
+        onPrint={() => window.print()}
       />
       <div className="main">
         {ui.sidePanelOpen && (
@@ -562,40 +767,53 @@ function App() {
             />
           </>
         )}
-        <div className="scroller" ref={scrollerRef} tabIndex={-1} onScroll={onScroll}>
-          {error && (
-            <div className="message-bar error" role="alert">
-              <span>{error}</span>
-              <button type="button" aria-label={t('Close')} onClick={() => setError(null)}>
-                <Icon name="close" />
-              </button>
-            </div>
-          )}
-          {notice && (
-            <div className="message-bar notice" role="status">
-              <span>{notice}</span>
-              <button type="button" aria-label={t('Close')} onClick={() => setNotice(null)}>
-                <Icon name="close" />
-              </button>
-            </div>
-          )}
-          {file ? (
-            <Reader
-              file={file}
-              settings={settings}
-              theme={theme}
-              onShown={onShown}
-              onLinkClick={onLinkClick}
-            />
-          ) : (
-            <EmptyState
-              recent={recent
-                .filter((record) => !missing.has(record.uri))
-                .map((record) => ({ path: record.uri, title: record.title }))}
-              onOpenFile={() => void openWithDialog()}
-              onOpenRecent={(path) => void open(path)}
+        <div className="reader-area">
+          {searchOpen && (
+            <SearchBar
+              query={query}
+              count={matchCount}
+              current={matchIndex}
+              onQuery={onQuery}
+              onNext={() => matchCount > 0 && showMatch(cycleIndex(matchIndex, matchCount, 1))}
+              onPrevious={() => matchCount > 0 && showMatch(cycleIndex(matchIndex, matchCount, -1))}
+              onClose={closeSearch}
             />
           )}
+          <div className="scroller" ref={scrollerRef} tabIndex={-1} onScroll={onScroll}>
+            {error && (
+              <div className="message-bar error" role="alert">
+                <span>{error}</span>
+                <button type="button" aria-label={t('Close')} onClick={() => setError(null)}>
+                  <Icon name="close" />
+                </button>
+              </div>
+            )}
+            {notice && (
+              <div className="message-bar notice" role="status">
+                <span>{notice}</span>
+                <button type="button" aria-label={t('Close')} onClick={() => setNotice(null)}>
+                  <Icon name="close" />
+                </button>
+              </div>
+            )}
+            {file ? (
+              <Reader
+                file={file}
+                settings={settings}
+                theme={theme}
+                onShown={onShown}
+                onLinkClick={onLinkClick}
+              />
+            ) : (
+              <EmptyState
+                recent={recent
+                  .filter((record) => !missing.has(record.uri))
+                  .map((record) => ({ path: record.uri, title: record.title }))}
+                onOpenFile={() => void openWithDialog()}
+                onOpenRecent={(path) => void open(path)}
+              />
+            )}
+          </div>
         </div>
       </div>
       {dragging && <div className="drop-overlay">{t('Drop to open')}</div>}
@@ -605,6 +823,7 @@ function App() {
           onChange={setSettings}
           onReset={() => setSettings(DEFAULT_SETTINGS)}
           onClose={() => setSettingsOpen(false)}
+          onChooseCustomCss={() => void chooseCustomCss()}
         />
       )}
     </div>
