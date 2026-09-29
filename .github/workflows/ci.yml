@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # release.yml から、リリースの前に同じ検査を通すために呼ぶ
+  workflow_call:
 
 # 同じブランチへの新しい push が来たら、古い実行を止める
 concurrency:

@@ -1,0 +1,91 @@
+name: Release
+
+# v1.0.0 のようなタグを push すると、CI と同じ検査を通してから 3 つの OS のインストーラーを作り、
+# GitHub Release の下書きに添付する。下書きは中身を確かめてから手で公開する（docs/publishing.md）。
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    name: Check version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # タグと package.json、Cargo.toml、tauri.conf.json の版が揃っていることを確かめる
+      - run: node scripts/check-version.mjs "$GITHUB_REF_NAME"
+
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  # 3 つのビルドが同じ下書きに添付するよう、先に下書きを 1 つだけ作る
+  create-release:
+    name: Create draft release
+    needs: [version, ci]
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create.outputs.release-id }}
+    steps:
+      - id: create
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --notes "See [CHANGELOG.md](https://github.com/$GH_REPO/blob/main/CHANGELOG.md)." \
+            --verify-tag
+          id="$(gh api "repos/$GH_REPO/releases" --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id")"
+          echo "release-id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            args: ''
+          # Apple Silicon と Intel の両方で動く universal ビルド
+          - name: macOS
+            os: macos-latest
+            args: '--target universal-apple-darwin'
+          - name: Linux
+            os: ubuntu-22.04
+            args: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf xdg-utils
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release-id }}
+          args: ${{ matrix.args }}
+          uploadUpdaterJson: false
