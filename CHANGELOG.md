@@ -6,6 +6,8 @@ It follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-30
+
 The first release of the desktop version of [Yomu](https://github.com/shou6/yomu), based on the extension v0.3.1.
 
 ### Added
@@ -19,3 +21,6 @@ The first release of the desktop version of [Yomu](https://github.com/shou6/yomu
 - Find in page, focus mode, zoom for images and diagrams, folding for long code, print and PDF, and custom CSS.
 - English and Japanese interface.
 - Installers for Windows (NSIS), macOS (universal) and Linux (AppImage and deb).
+
+[Unreleased]: https://github.com/shou6/yomu-desktop/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/shou6/yomu-desktop/releases/tag/v1.0.0
