@@ -17,7 +17,8 @@
   - コードの色付け、Mermaid の図、見出しのアンカー、ローカルとウェブの画像を出します。
   - 数式は KaTeX で描きます（`$...$`、`$$...$$`、言語が `math` のコードブロック）。
   - YAML front matter は折りたたみの中に表で出します。
-  - 生の HTML は `<details>`、`<summary>`、`<kbd>`、`<sub>`、`<sup>`、`<br>` だけを通し、ほかのタグは文字として出します。
+  - 生の HTML は `<details>`、`<summary>`、`<kbd>`、`<sub>`、`<sup>`、`<br>` と、`<span>`、`<b>`、`<mark>` などの行内の装飾タグだけを通し、ほかのタグは文字として出します。
+  - 行内のタグの `style` は、色と文字装飾（`color`、`background-color`、`font-weight`、`font-style`、`text-decoration`、`font-size`）だけが効きます。
 - **テーマ**：`auto`（OS のライトとダークに合わせる）、`paper`、`sepia`、`dark`、Solarized、GitHub、Nord、Catppuccin。
 - **目次**：サイドパネルに見出しを並べます。クリックで移動し、スクロールに合わせて今読んでいる見出しを示します。
 - **文書間のリンク**：相対リンクの Markdown は同じウィンドウで開きます（`#見出し` にも対応）。ブラウザのように戻る・進むができます。ほかのファイルは既定のアプリで、ウェブのリンクはブラウザで開きます。
