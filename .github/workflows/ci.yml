@@ -80,5 +80,9 @@ jobs:
         run: cargo fmt --check
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
+      # リリースビルドでしかコンパイルしないコード（cfg(not(debug_assertions))）があるので、Windows では release でも検査する
+      - name: Clippy (release)
+        if: runner.os == 'Windows'
+        run: cargo clippy --release --all-targets -- -D warnings
       - name: Test
         run: cargo test
