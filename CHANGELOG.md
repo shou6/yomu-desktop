@@ -6,14 +6,15 @@ It follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-09-30
+## [0.4.0] - 2026-10-03
 
-The first release of the desktop version of [Yomu](https://github.com/shou6/yomu), based on the extension v0.3.1.
+The first release of the desktop version of [Yomu](https://github.com/shou6/yomu), based on the extension v0.4.0. Versions follow the extension from this release.
 
 ### Added
 
 - Open Markdown files by double-click (file association for `.md` and `.markdown`), drag and drop, or the file dialog. A second launch opens the file in the running window.
 - Rendering and typesetting from Yomu: CommonMark and GFM, footnotes, KaTeX math, Mermaid diagrams, syntax highlighting, YAML front matter, and bundled Japanese fonts.
+- Raw HTML: `<details>`, `<summary>`, `<kbd>`, `<sub>`, `<sup>`, `<br>` and inline decoration tags such as `<span>`, `<b>` and `<mark>`. On inline tags the `style` attribute keeps text color and decoration only.
 - Themes: `auto` (follows the OS light or dark mode), `paper`, `sepia`, `dark`, Solarized, GitHub, Nord and Catppuccin.
 - Settings dialog for theme, layout, fonts, code folding, editor command, language and custom CSS.
 - Outline and reading history in a side panel, reading progress in the toolbar, and resuming from where you stopped.
@@ -22,5 +23,5 @@ The first release of the desktop version of [Yomu](https://github.com/shou6/yomu
 - English and Japanese interface.
 - Installers for Windows (NSIS), macOS (universal) and Linux (AppImage and deb).
 
-[Unreleased]: https://github.com/shou6/yomu-desktop/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/shou6/yomu-desktop/releases/tag/v1.0.0
+[Unreleased]: https://github.com/shou6/yomu-desktop/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/shou6/yomu-desktop/releases/tag/v0.4.0
